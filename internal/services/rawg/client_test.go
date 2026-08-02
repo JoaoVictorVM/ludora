@@ -176,3 +176,136 @@ func TestSearchGames_ErrorNeverLeaksAPIKey(t *testing.T) {
 		}
 	})
 }
+
+func TestGetGameDetails_Success(t *testing.T) {
+	var gotPath, gotKey, gotUserAgent string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotKey = r.URL.Query().Get("key")
+		gotUserAgent = r.Header.Get("User-Agent")
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"id":3498,
+			"name":"Grand Theft Auto V",
+			"background_image":"https://media.rawg.io/gta5.jpg",
+			"released":"2013-09-17",
+			"description_raw":"An open world action-adventure game.",
+			"developers":[{"name":"Rockstar North"},{"name":"Rockstar Games"}]
+		}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", WithBaseURL(server.URL))
+
+	details, err := client.GetGameDetails(context.Background(), "3498")
+	if err != nil {
+		t.Fatalf("GetGameDetails: %v", err)
+	}
+
+	if gotPath != "/games/3498" {
+		t.Errorf("path = %q, want /games/3498", gotPath)
+	}
+	if gotKey != "test-key" {
+		t.Errorf("key = %q, want test-key", gotKey)
+	}
+	if gotUserAgent != "ludora/1.0" {
+		t.Errorf("User-Agent = %q, want ludora/1.0", gotUserAgent)
+	}
+
+	if details.ExternalID != 3498 {
+		t.Errorf("ExternalID = %d, want 3498", details.ExternalID)
+	}
+	if details.Name != "Grand Theft Auto V" {
+		t.Errorf("Name = %q", details.Name)
+	}
+	if details.CoverURL != "https://media.rawg.io/gta5.jpg" {
+		t.Errorf("CoverURL = %q", details.CoverURL)
+	}
+	if details.Developer != "Rockstar North, Rockstar Games" {
+		t.Errorf("Developer = %q, want the comma-joined names", details.Developer)
+	}
+	if details.ReleasedAt == nil || details.ReleasedAt.Format(time.DateOnly) != "2013-09-17" {
+		t.Errorf("ReleasedAt = %v, want 2013-09-17", details.ReleasedAt)
+	}
+}
+
+func TestGetGameDetails_MapsDescriptionRaw(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{
+			"id":3498,
+			"name":"Grand Theft Auto V",
+			"description":"<p>An <b>open world</b> game.</p>",
+			"description_raw":"An open world game.",
+			"developers":[]
+		}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", WithBaseURL(server.URL))
+
+	details, err := client.GetGameDetails(context.Background(), "3498")
+	if err != nil {
+		t.Fatalf("GetGameDetails: %v", err)
+	}
+
+	if details.Description != "An open world game." {
+		t.Errorf("Description = %q, want the description_raw value", details.Description)
+	}
+	if strings.ContainsAny(details.Description, "<>") {
+		t.Errorf("Description carries HTML tags: %q", details.Description)
+	}
+	if details.Developer != "" {
+		t.Errorf("Developer = %q, want empty for a game with no developers", details.Developer)
+	}
+	if details.ReleasedAt != nil {
+		t.Errorf("ReleasedAt = %v, want nil when released is absent", details.ReleasedAt)
+	}
+}
+
+func TestGetGameDetails_Timeout(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-release
+	}))
+	defer func() {
+		close(release)
+		server.Close()
+	}()
+
+	client := NewClient("test-key", WithBaseURL(server.URL), WithTimeout(100*time.Millisecond))
+
+	start := time.Now()
+	_, err := client.GetGameDetails(context.Background(), "3498")
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("expected a timeout error, got nil")
+	}
+	if !errors.Is(err, ErrUnavailable) {
+		t.Errorf("error %v should classify as ErrUnavailable", err)
+	}
+	if elapsed > defaultTimeout {
+		t.Errorf("call took %v, want it bounded well under the %v budget", elapsed, defaultTimeout)
+	}
+}
+
+func TestGetGameDetails_NonOKStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", WithBaseURL(server.URL))
+
+	_, err := client.GetGameDetails(context.Background(), "999999")
+
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("error %v should be an *APIError", err)
+	}
+	if apiErr.StatusCode != http.StatusNotFound {
+		t.Errorf("StatusCode = %d, want 404", apiErr.StatusCode)
+	}
+}
