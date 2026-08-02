@@ -11,8 +11,10 @@ import (
 
 	"github.com/JoaoVictorVM/ludora/internal/config"
 	"github.com/JoaoVictorVM/ludora/internal/database"
+	"github.com/JoaoVictorVM/ludora/internal/handlers"
 	"github.com/JoaoVictorVM/ludora/internal/logging"
 	"github.com/JoaoVictorVM/ludora/internal/router"
+	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
 )
 
 const (
@@ -51,9 +53,18 @@ func run() error {
 		return err
 	}
 
+	if cfg.RawgAPIKey == "" {
+		logger.Warn("RAWG_API_KEY is not set; game search will fail until it is configured")
+	}
+	rawgClient := rawg.NewClient(cfg.RawgAPIKey)
+
 	server := &http.Server{
-		Addr:              ":" + cfg.Port,
-		Handler:           router.New(logger, staticDir),
+		Addr: ":" + cfg.Port,
+		Handler: router.New(router.Deps{
+			Logger:      logger,
+			StaticDir:   staticDir,
+			GamesSearch: handlers.NewGamesSearch(rawgClient, logger),
+		}),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 

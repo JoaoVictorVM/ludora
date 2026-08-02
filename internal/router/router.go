@@ -5,25 +5,38 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/JoaoVictorVM/ludora/internal/handlers"
 	"github.com/JoaoVictorVM/ludora/internal/middleware"
 	"github.com/JoaoVictorVM/ludora/internal/views"
 )
 
-// New builds the application handler: a standard ServeMux with static asset
-// serving, wrapped by request logging and the anonymous-identity middleware.
-func New(logger *slog.Logger, staticDir string) http.Handler {
+// Deps carries everything the router needs to mount the application's routes.
+type Deps struct {
+	Logger      *slog.Logger
+	StaticDir   string
+	GamesSearch *handlers.GamesSearch
+}
+
+// New builds the application handler: a standard ServeMux with the feature
+// routes and static assets, wrapped by request logging and the
+// anonymous-identity middleware.
+func New(deps Deps) http.Handler {
 	mux := http.NewServeMux()
 
-	fileServer := http.FileServer(http.Dir(staticDir))
+	fileServer := http.FileServer(http.Dir(deps.StaticDir))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		if err := views.Home().Render(r.Context(), w); err != nil && logger != nil {
-			logger.Error("rendering home", "error", err)
+		if err := views.Home().Render(r.Context(), w); err != nil && deps.Logger != nil {
+			deps.Logger.Error("rendering home", "error", err)
 		}
 	})
 
-	return requestLogger(logger)(middleware.AnonymousID(mux))
+	if deps.GamesSearch != nil {
+		mux.HandleFunc("GET /jogos/buscar", deps.GamesSearch.Search)
+	}
+
+	return requestLogger(deps.Logger)(middleware.AnonymousID(mux))
 }
 
 type statusRecorder struct {
