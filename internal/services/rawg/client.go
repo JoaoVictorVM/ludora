@@ -115,7 +115,13 @@ func (c *Client) SearchGames(ctx context.Context, query string) ([]SearchResult,
 
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		// The URL is deliberately left out of the error: it carries the API key.
+		// net/http wraps transport failures in *url.Error, whose message embeds
+		// the full request URL — and the URL carries the API key. Only the inner
+		// cause is propagated so the key can never reach a log line.
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			err = urlErr.Err
+		}
 		return nil, fmt.Errorf("rawg: searching games: %w", errors.Join(err, ErrUnavailable))
 	}
 	defer res.Body.Close()

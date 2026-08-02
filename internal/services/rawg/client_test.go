@@ -136,18 +136,43 @@ func TestSearchGames_NonOKStatus(t *testing.T) {
 }
 
 func TestSearchGames_ErrorNeverLeaksAPIKey(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusTeapot)
-	}))
-	defer server.Close()
+	const apiKey = "super-secret-key"
 
-	client := NewClient("super-secret-key", WithBaseURL(server.URL))
+	t.Run("unexpected status", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusTeapot)
+		}))
+		defer server.Close()
 
-	_, err := client.SearchGames(context.Background(), "gta")
-	if err == nil {
-		t.Fatal("expected an error, got nil")
-	}
-	if got := err.Error(); strings.Contains(got, "super-secret-key") {
-		t.Errorf("error message leaks the API key: %q", got)
-	}
+		client := NewClient(apiKey, WithBaseURL(server.URL))
+
+		_, err := client.SearchGames(context.Background(), "gta")
+		if err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+		if got := err.Error(); strings.Contains(got, apiKey) {
+			t.Errorf("error message leaks the API key: %q", got)
+		}
+	})
+
+	// Transport failures are the dangerous path: net/http embeds the full URL,
+	// query string included, in *url.Error.
+	t.Run("transport failure", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+		unreachable := server.URL
+		server.Close()
+
+		client := NewClient(apiKey, WithBaseURL(unreachable), WithTimeout(100*time.Millisecond))
+
+		_, err := client.SearchGames(context.Background(), "gta")
+		if err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+		if got := err.Error(); strings.Contains(got, apiKey) {
+			t.Errorf("error message leaks the API key: %q", got)
+		}
+		if !errors.Is(err, ErrUnavailable) {
+			t.Errorf("transport failure %v should classify as ErrUnavailable", err)
+		}
+	})
 }
