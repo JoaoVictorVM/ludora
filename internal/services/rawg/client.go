@@ -96,20 +96,20 @@ type searchResponse struct {
 	} `json:"results"`
 }
 
-// SearchGames returns the top matches for query.
-func (c *Client) SearchGames(ctx context.Context, query string) ([]SearchResult, error) {
-	params := url.Values{}
-	params.Set("search", query)
-	params.Set("page_size", strconv.Itoa(searchPageSize))
+// get issues an authenticated RAWG request and decodes the response into dest.
+func (c *Client) get(ctx context.Context, path string, params url.Values, operation string, dest any) error {
 	if c.apiKey != "" {
 		params.Set("key", c.apiKey)
 	}
 
-	endpoint := c.baseURL + "/games?" + params.Encode()
+	endpoint := c.baseURL + path
+	if encoded := params.Encode(); encoded != "" {
+		endpoint += "?" + encoded
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return nil, fmt.Errorf("rawg: building search request: %w", err)
+		return fmt.Errorf("rawg: building %s request: %w", operation, err)
 	}
 	req.Header.Set("User-Agent", userAgent)
 
@@ -122,17 +122,30 @@ func (c *Client) SearchGames(ctx context.Context, query string) ([]SearchResult,
 		if errors.As(err, &urlErr) {
 			err = urlErr.Err
 		}
-		return nil, fmt.Errorf("rawg: searching games: %w", errors.Join(err, ErrUnavailable))
+		return fmt.Errorf("rawg: %s: %w", operation, errors.Join(err, ErrUnavailable))
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, &APIError{StatusCode: res.StatusCode}
+		return &APIError{StatusCode: res.StatusCode}
 	}
 
+	if err := json.NewDecoder(res.Body).Decode(dest); err != nil {
+		return fmt.Errorf("rawg: decoding %s response: %w", operation, err)
+	}
+
+	return nil
+}
+
+// SearchGames returns the top matches for query.
+func (c *Client) SearchGames(ctx context.Context, query string) ([]SearchResult, error) {
+	params := url.Values{}
+	params.Set("search", query)
+	params.Set("page_size", strconv.Itoa(searchPageSize))
+
 	var payload searchResponse
-	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
-		return nil, fmt.Errorf("rawg: decoding search response: %w", err)
+	if err := c.get(ctx, "/games", params, "searching games", &payload); err != nil {
+		return nil, err
 	}
 
 	results := make([]SearchResult, 0, len(payload.Results))
@@ -146,6 +159,64 @@ func (c *Client) SearchGames(ctx context.Context, query string) ([]SearchResult,
 	}
 
 	return results, nil
+}
+
+// GameDetails is the enriched record fetched the first time a game is selected.
+type GameDetails struct {
+	ExternalID  int
+	Name        string
+	CoverURL    string
+	ReleasedAt  *time.Time
+	Developer   string
+	Description string
+}
+
+type detailsResponse struct {
+	ID              int    `json:"id"`
+	Name            string `json:"name"`
+	BackgroundImage string `json:"background_image"`
+	Released        string `json:"released"`
+	DescriptionRaw  string `json:"description_raw"`
+	Developers      []struct {
+		Name string `json:"name"`
+	} `json:"developers"`
+}
+
+// GetGameDetails fetches the full record for a game. The HTML `description`
+// field is deliberately not mapped: Templ escapes output, so its tags would show
+// up as literal text — `description_raw` is the plain-text equivalent.
+func (c *Client) GetGameDetails(ctx context.Context, externalID string) (*GameDetails, error) {
+	var payload detailsResponse
+	if err := c.get(ctx, "/games/"+url.PathEscape(externalID), url.Values{}, "fetching game details", &payload); err != nil {
+		return nil, err
+	}
+
+	developers := make([]string, 0, len(payload.Developers))
+	for _, developer := range payload.Developers {
+		if developer.Name != "" {
+			developers = append(developers, developer.Name)
+		}
+	}
+
+	return &GameDetails{
+		ExternalID:  payload.ID,
+		Name:        payload.Name,
+		CoverURL:    payload.BackgroundImage,
+		ReleasedAt:  releaseDate(payload.Released),
+		Developer:   strings.Join(developers, ", "),
+		Description: payload.DescriptionRaw,
+	}, nil
+}
+
+// releaseDate parses RAWG's "YYYY-MM-DD" date, returning nil when the game has
+// no known release date.
+func releaseDate(released string) *time.Time {
+	parsed, err := time.Parse(time.DateOnly, released)
+	if err != nil {
+		return nil
+	}
+
+	return &parsed
 }
 
 // releaseYear extracts the year from RAWG's "YYYY-MM-DD" date, returning 0 when
