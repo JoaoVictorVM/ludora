@@ -19,8 +19,8 @@ import (
 const minQueryLength = 2
 
 const (
-	messageUnavailable = "We couldn't search games right now. Please try again in a moment."
-	messageGenericFail = "Something went wrong with that search."
+	messageUnavailable = "Não foi possível buscar jogos agora. Tente novamente em instantes."
+	messageGenericFail = "Algo deu errado com essa busca."
 )
 
 // GameSearcher is the slice of the RAWG client this handler depends on.

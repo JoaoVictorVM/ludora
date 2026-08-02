@@ -78,7 +78,7 @@ func TestSearchHandler_EmptyResults(t *testing.T) {
 
 	body := doSearch(t, NewGamesSearch(searcher, nil), "zzzzz").Body.String()
 
-	if !strings.Contains(body, "No games found for &#39;zzzzz&#39;. Try a different search.") {
+	if !strings.Contains(body, "Nenhum jogo encontrado para &#39;zzzzz&#39;. Tente outra busca.") {
 		t.Errorf("expected the empty-state message, got %q", body)
 	}
 }
@@ -111,7 +111,7 @@ func TestSearchHandler_RawgTimeout(t *testing.T) {
 
 	body := doSearch(t, NewGamesSearch(searcher, nil), "gta").Body.String()
 
-	if !strings.Contains(body, "We couldn&#39;t search games right now. Please try again in a moment.") {
+	if !strings.Contains(body, "Não foi possível buscar jogos agora. Tente novamente em instantes.") {
 		t.Errorf("expected the unavailable fallback, got %q", body)
 	}
 }
@@ -122,7 +122,7 @@ func TestSearchHandler_RawgClientError(t *testing.T) {
 
 	body := doSearch(t, NewGamesSearch(searcher, captureLogger(&logs)), "gta").Body.String()
 
-	if !strings.Contains(body, "Something went wrong with that search.") {
+	if !strings.Contains(body, "Algo deu errado com essa busca.") {
 		t.Errorf("expected the generic failure message, got %q", body)
 	}
 
@@ -146,7 +146,7 @@ func TestSearchHandler_RawgServerErrorShowsUnavailable(t *testing.T) {
 
 	body := doSearch(t, NewGamesSearch(searcher, nil), "gta").Body.String()
 
-	if !strings.Contains(body, "We couldn&#39;t search games right now.") {
+	if !strings.Contains(body, "Não foi possível buscar jogos agora.") {
 		t.Errorf("a 5xx should render the unavailable fallback, got %q", body)
 	}
 }

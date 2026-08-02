@@ -20,7 +20,7 @@ func renderHome(t *testing.T) string {
 func TestLayout_RendersFooterAttribution(t *testing.T) {
 	html := renderHome(t)
 
-	if !strings.Contains(html, "Game data provided by") {
+	if !strings.Contains(html, "Dados dos jogos fornecidos por") {
 		t.Error("footer is missing the RAWG attribution text")
 	}
 	if !strings.Contains(html, `href="https://rawg.io"`) {

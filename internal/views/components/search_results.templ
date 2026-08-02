@@ -8,7 +8,7 @@ import (
 
 templ SearchResults(query string, results []rawg.SearchResult) {
 	if len(results) == 0 {
-		<p class="text-sm text-muted">{ fmt.Sprintf("No games found for '%s'. Try a different search.", query) }</p>
+		<p class="text-sm text-muted">{ fmt.Sprintf("Nenhum jogo encontrado para '%s'. Tente outra busca.", query) }</p>
 	} else {
 		<ul class="flex flex-col gap-2">
 			for _, result := range results {
