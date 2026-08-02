@@ -15,6 +15,7 @@ type Deps struct {
 	Logger      *slog.Logger
 	StaticDir   string
 	GamesSearch *handlers.GamesSearch
+	GamesDetail *handlers.GamesDetail
 }
 
 // New builds the application handler: a standard ServeMux with the feature
@@ -34,6 +35,10 @@ func New(deps Deps) http.Handler {
 
 	if deps.GamesSearch != nil {
 		mux.HandleFunc("GET /jogos/buscar", deps.GamesSearch.Search)
+	}
+
+	if deps.GamesDetail != nil {
+		mux.HandleFunc("GET /jogos/{external_id}/formulario", deps.GamesDetail.Form)
 	}
 
 	return requestLogger(deps.Logger)(middleware.AnonymousID(mux))
