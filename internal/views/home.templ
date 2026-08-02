@@ -1,10 +1,26 @@
 package views
 
-// Home is a placeholder page so the shared layout has a rendered surface before
-// F06 implements the real feed. F06 replaces its contents.
+// Home hosts the search entry point. F06 replaces the area below the form with
+// the real feed of recently reviewed games.
 templ Home() {
 	@Layout("Ludora") {
 		<h1 class="text-2xl font-semibold">Ludora</h1>
 		<p class="mt-2 text-muted">Avalie e comente jogos, sem cadastro.</p>
+		<section class="mt-8">
+			<label for="busca" class="block text-sm text-muted">Buscar um jogo</label>
+			<input
+				id="busca"
+				type="search"
+				name="q"
+				autocomplete="off"
+				placeholder="Digite o nome do jogo"
+				class="mt-2 w-full rounded border border-border bg-surface px-3 py-2 outline-none focus:border-accent"
+				hx-get="/jogos/buscar"
+				hx-trigger="keyup changed delay:300ms"
+				hx-target="#search-results"
+			/>
+			<div id="search-results" class="mt-4"></div>
+			<div id="form-area" class="mt-6"></div>
+		</section>
 	}
 }
