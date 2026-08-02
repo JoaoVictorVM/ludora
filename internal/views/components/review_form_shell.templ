@@ -1,0 +1,32 @@
+package components
+
+import (
+	"strconv"
+
+	"github.com/JoaoVictorVM/ludora/internal/models"
+)
+
+// ReviewFormShell renders the selected game's context and carries the resolved
+// local game id. F04 fills the form with the rating widget, comment field and
+// submit action.
+templ ReviewFormShell(game *models.Game) {
+	<form id="review-form" class="rounded border border-border bg-surface p-4">
+		<input type="hidden" name="game_id" value={ strconv.FormatInt(game.ID, 10) }/>
+		<div class="flex items-center gap-4">
+			if game.CoverURL != "" {
+				<img src={ game.CoverURL } alt="" class="h-24 w-24 shrink-0 rounded object-cover"/>
+			} else {
+				<span class="h-24 w-24 shrink-0 rounded bg-border"></span>
+			}
+			<div class="min-w-0">
+				<h2 class="truncate text-lg font-semibold">{ game.Name }</h2>
+				if game.ReleaseYear() > 0 {
+					<p class="text-sm text-muted">{ strconv.Itoa(game.ReleaseYear()) }</p>
+				}
+				if game.Developer != "" {
+					<p class="text-sm text-muted">{ game.Developer }</p>
+				}
+			</div>
+		</div>
+	</form>
+}
