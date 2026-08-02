@@ -1,0 +1,25 @@
+package components
+
+import (
+	"fmt"
+
+	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
+)
+
+templ SearchResults(query string, results []rawg.SearchResult) {
+	if len(results) == 0 {
+		<p class="text-sm text-muted">{ fmt.Sprintf("No games found for '%s'. Try a different search.", query) }</p>
+	} else {
+		<ul class="flex flex-col gap-2">
+			for _, result := range results {
+				<li>
+					@SearchResultCard(result)
+				</li>
+			}
+		</ul>
+	}
+}
+
+templ SearchError(message string) {
+	<p class="text-sm text-muted">{ message }</p>
+}
