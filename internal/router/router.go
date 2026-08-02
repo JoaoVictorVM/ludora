@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/JoaoVictorVM/ludora/internal/middleware"
+	"github.com/JoaoVictorVM/ludora/internal/views"
 )
 
 // New builds the application handler: a standard ServeMux with static asset
@@ -15,6 +16,12 @@ func New(logger *slog.Logger, staticDir string) http.Handler {
 
 	fileServer := http.FileServer(http.Dir(staticDir))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
+
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		if err := views.Home().Render(r.Context(), w); err != nil && logger != nil {
+			logger.Error("rendering home", "error", err)
+		}
+	})
 
 	return requestLogger(logger)(middleware.AnonymousID(mux))
 }
