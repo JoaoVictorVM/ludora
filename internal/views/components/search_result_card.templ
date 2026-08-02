@@ -1,0 +1,29 @@
+package components
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
+)
+
+templ SearchResultCard(result rawg.SearchResult) {
+	<button
+		type="button"
+		class="flex w-full items-center gap-3 rounded border border-border bg-surface p-2 text-left hover:border-accent"
+		hx-get={ fmt.Sprintf("/jogos/%d/formulario", result.ExternalID) }
+		hx-target="#form-area"
+	>
+		if result.CoverURL != "" {
+			<img src={ result.CoverURL } alt="" class="h-16 w-16 shrink-0 rounded object-cover"/>
+		} else {
+			<span class="h-16 w-16 shrink-0 rounded bg-border"></span>
+		}
+		<span class="min-w-0">
+			<span class="block truncate font-medium">{ result.Name }</span>
+			if result.ReleaseYear > 0 {
+				<span class="block text-sm text-muted">{ strconv.Itoa(result.ReleaseYear) }</span>
+			}
+		</span>
+	</button>
+}
