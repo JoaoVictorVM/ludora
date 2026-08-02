@@ -1,2 +1,9 @@
+.env
+/bin/
+/tmp/
+static/css/output.css
+*_templ.go
+tailwindcss
+tailwindcss.exe
 /docs
 CLAUDE.md
