@@ -10,7 +10,7 @@ func renderHome(t *testing.T) string {
 	t.Helper()
 
 	var sb strings.Builder
-	if err := Home().Render(context.Background(), &sb); err != nil {
+	if err := Home(nil, 0, false).Render(context.Background(), &sb); err != nil {
 		t.Fatalf("rendering home: %v", err)
 	}
 

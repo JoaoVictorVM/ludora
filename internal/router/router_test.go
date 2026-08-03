@@ -11,6 +11,7 @@ import (
 
 	"github.com/JoaoVictorVM/ludora/internal/handlers"
 	"github.com/JoaoVictorVM/ludora/internal/middleware"
+	"github.com/JoaoVictorVM/ludora/internal/repository"
 	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
 )
 
@@ -86,8 +87,17 @@ func TestRouter_RegistersGameSearchRoute(t *testing.T) {
 	}
 }
 
+type stubFeed struct{}
+
+func (stubFeed) ListRecentlyReviewed(context.Context, int, int) ([]repository.ReviewedGame, bool, error) {
+	return nil, false, nil
+}
+
 func TestRouter_HomeRendersSearchField(t *testing.T) {
-	handler := New(Deps{StaticDir: staticFixture(t)})
+	handler := New(Deps{
+		StaticDir: staticFixture(t),
+		Home:      handlers.NewHome(stubFeed{}, nil),
+	})
 
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
