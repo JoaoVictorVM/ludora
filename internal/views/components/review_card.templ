@@ -1,0 +1,32 @@
+package components
+
+import "github.com/JoaoVictorVM/ludora/internal/models"
+
+// ReviewView is a review prepared for display: the relative timestamp is
+// rendered server-side and IsOwner gates the controls F07 will place in the
+// slot at the bottom of the card.
+type ReviewView struct {
+	Review       models.Review
+	IsOwner      bool
+	RelativeTime string
+}
+
+templ ReviewCard(view ReviewView) {
+	<article id={ reviewCardID(view.Review.ID) } class="rounded border border-border bg-surface p-4">
+		<header class="flex items-baseline justify-between gap-4">
+			<p class="font-semibold text-accent">
+				{ FormatStars(view.Review.Stars()) }
+				<span class="text-muted">/ 5</span>
+			</p>
+			<p class="text-sm text-muted">{ view.RelativeTime }</p>
+		</header>
+		if view.Review.Comment != "" {
+			<p class="mt-2 whitespace-pre-line">{ view.Review.Comment }</p>
+		} else {
+			<p class="mt-2 text-sm text-muted">Sem comentário.</p>
+		}
+		if view.IsOwner {
+			<div id={ reviewControlsID(view.Review.ID) } class="mt-3 flex gap-3 text-sm"></div>
+		}
+	</article>
+}
