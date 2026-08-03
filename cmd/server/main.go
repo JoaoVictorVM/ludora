@@ -70,6 +70,8 @@ func run() error {
 			GamesDetail:   handlers.NewGamesDetail(gameRepo, rawgClient, logger),
 			ReviewsSubmit: handlers.NewReviewsSubmit(reviewRepo, gameRepo, logger),
 			GamesShow:     handlers.NewGamesShow(gameRepo, reviewRepo, logger),
+			Home:          handlers.NewHome(gameRepo, logger),
+			GamesRecent:   handlers.NewGamesRecent(gameRepo, logger),
 		}),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}

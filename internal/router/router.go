@@ -7,7 +7,6 @@ import (
 
 	"github.com/JoaoVictorVM/ludora/internal/handlers"
 	"github.com/JoaoVictorVM/ludora/internal/middleware"
-	"github.com/JoaoVictorVM/ludora/internal/views"
 )
 
 // Deps carries everything the router needs to mount the application's routes.
@@ -18,6 +17,8 @@ type Deps struct {
 	GamesDetail   *handlers.GamesDetail
 	ReviewsSubmit *handlers.ReviewsSubmit
 	GamesShow     *handlers.GamesShow
+	Home          *handlers.Home
+	GamesRecent   *handlers.GamesRecent
 }
 
 // New builds the application handler: a standard ServeMux with the feature
@@ -29,11 +30,13 @@ func New(deps Deps) http.Handler {
 	fileServer := http.FileServer(http.Dir(deps.StaticDir))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		if err := views.Home().Render(r.Context(), w); err != nil && deps.Logger != nil {
-			deps.Logger.Error("rendering home", "error", err)
-		}
-	})
+	if deps.Home != nil {
+		mux.HandleFunc("GET /{$}", deps.Home.Show)
+	}
+
+	if deps.GamesRecent != nil {
+		mux.HandleFunc("GET /jogos/recentes", deps.GamesRecent.List)
+	}
 
 	if deps.GamesSearch != nil {
 		mux.HandleFunc("GET /jogos/buscar", deps.GamesSearch.Search)
