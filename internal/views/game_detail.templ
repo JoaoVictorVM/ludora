@@ -1,0 +1,65 @@
+package views
+
+import (
+	"fmt"
+
+	"github.com/JoaoVictorVM/ludora/internal/models"
+	"github.com/JoaoVictorVM/ludora/internal/views/components"
+)
+
+templ GameDetail(game *models.Game, averageStars float64, totalReviews int, reviews []components.ReviewView) {
+	@Layout(game.Name + " — Ludora") {
+		<article class="flex flex-col gap-6 md:flex-row">
+			if game.CoverURL != "" {
+				<img src={ game.CoverURL } alt="" class="w-full rounded object-cover md:w-64"/>
+			} else {
+				<span class="h-48 w-full rounded bg-border md:w-64"></span>
+			}
+			<div class="min-w-0">
+				<h1 class="text-2xl font-semibold">{ game.Name }</h1>
+				<p class="mt-1 text-sm text-muted">
+					if game.ReleaseYear() > 0 {
+						<span>{ fmt.Sprintf("%d", game.ReleaseYear()) }</span>
+					}
+					if game.ReleaseYear() > 0 && game.Developer != "" {
+						<span> · </span>
+					}
+					if game.Developer != "" {
+						<span>{ game.Developer }</span>
+					}
+				</p>
+				if totalReviews > 0 {
+					<p class="mt-4 text-lg">
+						<span class="font-semibold text-accent">{ components.FormatStars(averageStars) }</span>
+						<span class="text-muted">{ fmt.Sprintf("/ 5 · %s", pluralizeReviews(totalReviews)) }</span>
+					</p>
+				} else {
+					<p class="mt-4 text-muted">Este jogo ainda não tem reviews. Seja o primeiro a avaliar!</p>
+				}
+				if game.Description != "" {
+					<p class="mt-4 whitespace-pre-line text-muted">{ game.Description }</p>
+				}
+			</div>
+		</article>
+		if totalReviews > 0 {
+			<section class="mt-10">
+				<h2 class="text-lg font-semibold">Reviews</h2>
+				<ul class="mt-4 flex flex-col gap-3">
+					for _, review := range reviews {
+						<li>
+							@components.ReviewCard(review)
+						</li>
+					}
+				</ul>
+			</section>
+		}
+	}
+}
+
+func pluralizeReviews(total int) string {
+	if total == 1 {
+		return "1 review"
+	}
+
+	return fmt.Sprintf("%d reviews", total)
+}
