@@ -326,3 +326,203 @@ func TestAverageRatingByGameID_ZeroReviewsReturnsNull(t *testing.T) {
 		t.Errorf("TotalReviews = %d, want 0", summary.TotalReviews)
 	}
 }
+
+func seedReview(t *testing.T, pool *pgxpool.Pool, gameID int64, reviewerUUID string) *models.Review {
+	t.Helper()
+
+	review, err := NewReviewRepository(pool).Create(context.Background(), &models.Review{
+		GameID:       gameID,
+		ReviewerUUID: reviewerUUID,
+		Rating:       8,
+		Comment:      "Comentário original.",
+	})
+	if err != nil {
+		t.Fatalf("seeding review: %v", err)
+	}
+
+	return review
+}
+
+func TestGetByID_ReturnsReview(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	owner := uuid.NewString()
+	seeded := seedReview(t, pool, gameID, owner)
+
+	repo := NewReviewRepository(pool)
+
+	found, err := repo.GetByID(ctx, seeded.ID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if found.ReviewerUUID != owner {
+		t.Errorf("ReviewerUUID = %q, want %q", found.ReviewerUUID, owner)
+	}
+
+	if _, err := repo.GetByID(ctx, 999999); !errors.Is(err, ErrNotFound) {
+		t.Errorf("error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestOwnerOf_ReturnsEmptyForMissingReview(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	owner := uuid.NewString()
+	seeded := seedReview(t, pool, gameID, owner)
+
+	repo := NewReviewRepository(pool)
+
+	got, err := repo.OwnerOf(ctx, seeded.ID)
+	if err != nil {
+		t.Fatalf("OwnerOf: %v", err)
+	}
+	if got != owner {
+		t.Errorf("OwnerOf = %q, want %q", got, owner)
+	}
+
+	// A missing review must look the same as one owned by somebody else.
+	got, err = repo.OwnerOf(ctx, 999999)
+	if err != nil {
+		t.Fatalf("OwnerOf on a missing review returned an error: %v", err)
+	}
+	if got != "" {
+		t.Errorf("OwnerOf = %q, want an empty owner", got)
+	}
+}
+
+func TestUpdateByIDAndReviewer_UpdatesRatingAndComment(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	owner := uuid.NewString()
+	seeded := seedReview(t, pool, gameID, owner)
+	repo := NewReviewRepository(pool)
+
+	updated, err := repo.UpdateByIDAndReviewer(ctx, seeded.ID, owner, 3, "Mudei de ideia.")
+	if err != nil {
+		t.Fatalf("UpdateByIDAndReviewer: %v", err)
+	}
+	if !updated {
+		t.Fatal("expected the update to affect a row")
+	}
+
+	after, err := repo.GetByID(ctx, seeded.ID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if after.Rating != 3 {
+		t.Errorf("Rating = %d, want 3", after.Rating)
+	}
+	if after.Comment != "Mudei de ideia." {
+		t.Errorf("Comment = %q", after.Comment)
+	}
+}
+
+func TestUpdateByIDAndReviewer_ClearingCommentStoresNull(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	owner := uuid.NewString()
+	seeded := seedReview(t, pool, gameID, owner)
+	repo := NewReviewRepository(pool)
+
+	if _, err := repo.UpdateByIDAndReviewer(ctx, seeded.ID, owner, 5, ""); err != nil {
+		t.Fatalf("UpdateByIDAndReviewer: %v", err)
+	}
+
+	var isNull bool
+	if err := pool.QueryRow(ctx, "SELECT comment IS NULL FROM reviews WHERE id = $1", seeded.ID).Scan(&isNull); err != nil {
+		t.Fatalf("checking comment column: %v", err)
+	}
+	if !isNull {
+		t.Error("clearing the comment should store NULL, not an empty string")
+	}
+}
+
+func TestUpdateByIDAndReviewer_NoRowsWhenNotOwner(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	owner := uuid.NewString()
+	seeded := seedReview(t, pool, gameID, owner)
+	repo := NewReviewRepository(pool)
+
+	updated, err := repo.UpdateByIDAndReviewer(ctx, seeded.ID, uuid.NewString(), 1, "Invadido.")
+	if err != nil {
+		t.Fatalf("UpdateByIDAndReviewer: %v", err)
+	}
+	if updated {
+		t.Fatal("a non-owner must not affect any row")
+	}
+
+	after, err := repo.GetByID(ctx, seeded.ID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if after.Rating != seeded.Rating || after.Comment != seeded.Comment {
+		t.Errorf("review changed under a non-owner update: %+v", after)
+	}
+}
+
+func TestDeleteByIDAndReviewer_RemovesRow(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	owner := uuid.NewString()
+	seeded := seedReview(t, pool, gameID, owner)
+	repo := NewReviewRepository(pool)
+
+	deleted, err := repo.DeleteByIDAndReviewer(ctx, seeded.ID, owner)
+	if err != nil {
+		t.Fatalf("DeleteByIDAndReviewer: %v", err)
+	}
+	if !deleted {
+		t.Fatal("expected the delete to affect a row")
+	}
+
+	if _, err := repo.GetByID(ctx, seeded.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("review still readable after delete: %v", err)
+	}
+}
+
+func TestDeleteByIDAndReviewer_NoRowsWhenNotOwner(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	seeded := seedReview(t, pool, gameID, uuid.NewString())
+	repo := NewReviewRepository(pool)
+
+	deleted, err := repo.DeleteByIDAndReviewer(ctx, seeded.ID, uuid.NewString())
+	if err != nil {
+		t.Fatalf("DeleteByIDAndReviewer: %v", err)
+	}
+	if deleted {
+		t.Fatal("a non-owner must not delete the review")
+	}
+	if _, err := repo.GetByID(ctx, seeded.ID); err != nil {
+		t.Errorf("review should still exist: %v", err)
+	}
+}
+
+func TestDeleteByIDAndReviewer_NoRowsWhenAlreadyDeleted(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	owner := uuid.NewString()
+	seeded := seedReview(t, pool, gameID, owner)
+	repo := NewReviewRepository(pool)
+
+	if _, err := repo.DeleteByIDAndReviewer(ctx, seeded.ID, owner); err != nil {
+		t.Fatalf("first delete: %v", err)
+	}
+
+	deleted, err := repo.DeleteByIDAndReviewer(ctx, seeded.ID, owner)
+	if err != nil {
+		t.Fatalf("deleting twice must not error: %v", err)
+	}
+	if deleted {
+		t.Error("the second delete should report that nothing was removed")
+	}
+}
