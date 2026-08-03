@@ -1,0 +1,26 @@
+package components
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// ReviewDeleteConfirm is the second step of deletion: it replaces the controls
+// row in place, so the confirmation is a server-rendered state rather than a
+// JavaScript confirm() dialog.
+templ ReviewDeleteConfirm(reviewID, gameID int64) {
+	<div id={ reviewControlsID(reviewID) } class="mt-3 flex items-center gap-3 text-sm">
+		<span>Excluir esta review?</span>
+		<button
+			type="button"
+			class="rounded bg-accent px-3 py-1 font-medium text-bg hover:opacity-90"
+			hx-delete={ fmt.Sprintf("/reviews/%d", reviewID) }
+			hx-target={ "#" + ReviewsSectionID }
+			hx-swap="outerHTML"
+		>Sim, excluir</button>
+		<a
+			href={ templ.SafeURL("/jogos/" + strconv.FormatInt(gameID, 10)) }
+			class="text-muted underline underline-offset-2"
+		>Cancelar</a>
+	</div>
+}

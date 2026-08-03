@@ -1,6 +1,10 @@
 package components
 
-import "github.com/JoaoVictorVM/ludora/internal/models"
+import (
+	"fmt"
+
+	"github.com/JoaoVictorVM/ludora/internal/models"
+)
 
 // ReviewView is a review prepared for display: the relative timestamp is
 // rendered server-side and IsOwner gates the controls F07 will place in the
@@ -26,7 +30,22 @@ templ ReviewCard(view ReviewView) {
 			<p class="mt-2 text-sm text-muted">Sem comentário.</p>
 		}
 		if view.IsOwner {
-			<div id={ reviewControlsID(view.Review.ID) } class="mt-3 flex gap-3 text-sm"></div>
+			<div id={ reviewControlsID(view.Review.ID) } class="mt-3 flex gap-3 text-sm">
+				<button
+					type="button"
+					class="text-accent underline underline-offset-2"
+					hx-get={ fmt.Sprintf("/reviews/%d/editar", view.Review.ID) }
+					hx-target={ "#" + reviewCardID(view.Review.ID) }
+					hx-swap="outerHTML"
+				>Editar</button>
+				<button
+					type="button"
+					class="text-muted underline underline-offset-2"
+					hx-get={ fmt.Sprintf("/reviews/%d/confirmar-exclusao", view.Review.ID) }
+					hx-target={ "#" + reviewControlsID(view.Review.ID) }
+					hx-swap="outerHTML"
+				>Excluir</button>
+			</div>
 		}
 	</article>
 }
