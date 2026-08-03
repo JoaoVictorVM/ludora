@@ -12,10 +12,11 @@ import (
 
 // Deps carries everything the router needs to mount the application's routes.
 type Deps struct {
-	Logger      *slog.Logger
-	StaticDir   string
-	GamesSearch *handlers.GamesSearch
-	GamesDetail *handlers.GamesDetail
+	Logger        *slog.Logger
+	StaticDir     string
+	GamesSearch   *handlers.GamesSearch
+	GamesDetail   *handlers.GamesDetail
+	ReviewsSubmit *handlers.ReviewsSubmit
 }
 
 // New builds the application handler: a standard ServeMux with the feature
@@ -39,6 +40,10 @@ func New(deps Deps) http.Handler {
 
 	if deps.GamesDetail != nil {
 		mux.HandleFunc("GET /jogos/{external_id}/formulario", deps.GamesDetail.Form)
+	}
+
+	if deps.ReviewsSubmit != nil {
+		mux.HandleFunc("POST /reviews", deps.ReviewsSubmit.Submit)
 	}
 
 	return requestLogger(deps.Logger)(middleware.AnonymousID(mux))

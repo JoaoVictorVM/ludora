@@ -59,14 +59,16 @@ func run() error {
 	}
 	rawgClient := rawg.NewClient(cfg.RawgAPIKey)
 	gameRepo := repository.NewGameRepository(pool)
+	reviewRepo := repository.NewReviewRepository(pool)
 
 	server := &http.Server{
 		Addr: ":" + cfg.Port,
 		Handler: router.New(router.Deps{
-			Logger:      logger,
-			StaticDir:   staticDir,
-			GamesSearch: handlers.NewGamesSearch(rawgClient, logger),
-			GamesDetail: handlers.NewGamesDetail(gameRepo, rawgClient, logger),
+			Logger:        logger,
+			StaticDir:     staticDir,
+			GamesSearch:   handlers.NewGamesSearch(rawgClient, logger),
+			GamesDetail:   handlers.NewGamesDetail(gameRepo, rawgClient, logger),
+			ReviewsSubmit: handlers.NewReviewsSubmit(reviewRepo, gameRepo, logger),
 		}),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
