@@ -73,6 +73,7 @@ func run() error {
 			Home:          handlers.NewHome(gameRepo, logger),
 			GamesRecent:   handlers.NewGamesRecent(gameRepo, logger),
 			ReviewsEdit:   handlers.NewReviewsEdit(reviewRepo, logger),
+			ReviewsDelete: handlers.NewReviewsDelete(reviewRepo, logger),
 		}),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
