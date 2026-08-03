@@ -10,6 +10,15 @@ const (
 	MaxCommentLength = 800
 )
 
+// Messages shown when a submission is rejected. They live here because both the
+// handler and the form template need to agree on the duplicate case, which is
+// the only one that also renders a link to the existing review.
+const (
+	DuplicateReviewMessage = "Você já avaliou este jogo. Edite sua review existente."
+	MissingRatingMessage   = "Selecione uma nota antes de publicar."
+	CommentTooLongMessage  = "Sua review é muito longa (máximo de 800 caracteres)."
+)
+
 // Review is a single anonymous review of a game.
 type Review struct {
 	ID           int64
