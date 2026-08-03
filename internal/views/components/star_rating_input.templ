@@ -1,0 +1,50 @@
+package components
+
+import (
+	"fmt"
+
+	"github.com/JoaoVictorVM/ludora/internal/models"
+)
+
+// StarRatingInput renders the 0.5–5 star control as ten radio inputs, laid out
+// in reverse so a CSS sibling selector can fill every star up to the checked one
+// without any JavaScript. `selected` pre-checks a value (0 for a blank form),
+// which is what makes this component reusable by the edit form in F07.
+templ StarRatingInput(selected int16) {
+	<fieldset class="star-rating">
+		<legend class="text-sm text-muted">Sua nota</legend>
+		<div class="star-rating__stars">
+			for rating := int16(models.MaxRating); rating >= models.MinRating; rating-- {
+				<input
+					type="radio"
+					name="rating"
+					id={ fmt.Sprintf("rating-%d", rating) }
+					value={ fmt.Sprintf("%d", rating) }
+					class="star-rating__input"
+					checked?={ rating == selected }
+				/>
+				<label
+					for={ fmt.Sprintf("rating-%d", rating) }
+					class={ "star-rating__star", templ.KV("star-rating__star--half", rating%2 == 1) }
+					title={ starLabel(rating) }
+				>
+					<span class="sr-only">{ starLabel(rating) }</span>
+				</label>
+			}
+		</div>
+	</fieldset>
+}
+
+func starLabel(rating int16) string {
+	if rating == 2 {
+		return "1 estrela"
+	}
+	if rating%2 == 0 {
+		return fmt.Sprintf("%d estrelas", rating/2)
+	}
+	if rating == 1 {
+		return "meia estrela"
+	}
+
+	return fmt.Sprintf("%d estrelas e meia", rating/2)
+}
