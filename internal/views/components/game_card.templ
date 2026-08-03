@@ -1,0 +1,47 @@
+package components
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/JoaoVictorVM/ludora/internal/repository"
+)
+
+templ GameCard(game repository.ReviewedGame) {
+	<a
+		href={ templ.SafeURL("/jogos/" + strconv.FormatInt(game.ID, 10)) }
+		class="flex flex-col rounded border border-border bg-surface hover:border-accent"
+	>
+		if game.CoverURL != "" {
+			<img src={ game.CoverURL } alt="" class="aspect-[3/4] w-full rounded-t object-cover"/>
+		} else {
+			<span class="aspect-[3/4] w-full rounded-t bg-border"></span>
+		}
+		<span class="flex flex-col gap-1 p-2">
+			<span class="line-clamp-2 text-sm font-medium">{ game.Name }</span>
+			<span class="text-xs text-muted">
+				<span class="text-accent">{ FormatStars(game.AverageStars) }</span>
+				{ fmt.Sprintf("/ 5 · %s", pluralizeReviews(game.TotalReviews)) }
+			</span>
+		</span>
+	</a>
+}
+
+// GameCardBatch is what the pagination endpoint returns: the next page of cards
+// followed by the control for the page after it, or nothing when exhausted.
+templ GameCardBatch(games []repository.ReviewedGame, nextOffset int, hasMore bool) {
+	for _, game := range games {
+		@GameCard(game)
+	}
+	if hasMore {
+		@LoadMoreButton(nextOffset)
+	}
+}
+
+func pluralizeReviews(total int) string {
+	if total == 1 {
+		return "1 review"
+	}
+
+	return fmt.Sprintf("%d reviews", total)
+}

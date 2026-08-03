@@ -1,0 +1,16 @@
+package components
+
+import "fmt"
+
+// LoadMoreButton sits as the last cell of the grid and replaces itself with the
+// next batch of cards plus a fresh button, so appended pages land inside the
+// grid without any client-side pagination logic.
+templ LoadMoreButton(nextOffset int) {
+	<button
+		type="button"
+		class="col-span-full mt-4 rounded border border-border px-4 py-2 text-sm hover:border-accent"
+		hx-get={ fmt.Sprintf("/jogos/recentes?offset=%d", nextOffset) }
+		hx-target="this"
+		hx-swap="outerHTML"
+	>Carregar mais</button>
+}
