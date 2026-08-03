@@ -1,8 +1,11 @@
 package views
 
-// Home hosts the search entry point. F06 replaces the area below the form with
-// the real feed of recently reviewed games.
-templ Home() {
+import (
+	"github.com/JoaoVictorVM/ludora/internal/repository"
+	"github.com/JoaoVictorVM/ludora/internal/views/components"
+)
+
+templ Home(games []repository.ReviewedGame, nextOffset int, hasMore bool) {
 	@Layout("Ludora") {
 		<h1 class="text-2xl font-semibold">Ludora</h1>
 		<p class="mt-2 text-muted">Avalie e comente jogos, sem cadastro.</p>
@@ -21,6 +24,16 @@ templ Home() {
 			/>
 			<div id="search-results" class="mt-4"></div>
 			<div id="form-area" class="mt-6"></div>
+		</section>
+		<section class="mt-12">
+			<h2 class="text-lg font-semibold">Avaliados recentemente</h2>
+			if len(games) == 0 {
+				<p class="mt-4 text-muted">Nenhum jogo foi avaliado ainda. Seja o primeiro!</p>
+			} else {
+				<div id="game-grid" class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+					@components.GameCardBatch(games, nextOffset, hasMore)
+				</div>
+			}
 		</section>
 	}
 }
