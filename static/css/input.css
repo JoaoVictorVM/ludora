@@ -19,3 +19,75 @@
 		color: var(--color-text);
 	}
 }
+
+@layer components {
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border-width: 0;
+	}
+
+	/* The ten radio inputs are rendered from 10 down to 1 and flipped back with
+	   row-reverse, so `:checked ~ label` reaches exactly the stars below the
+	   selected one — the trick that makes the widget work without JavaScript. */
+	.star-rating__stars {
+		display: flex;
+		flex-direction: row-reverse;
+		justify-content: flex-end;
+	}
+
+	.star-rating__input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		opacity: 0;
+	}
+
+	/* Each label is half a star wide and masks half of the same glyph, so the
+	   colour stays driven by the theme tokens instead of a baked-in SVG fill. */
+	.star-rating__star {
+		width: 1rem;
+		height: 2rem;
+		cursor: pointer;
+		background-color: var(--color-border);
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E");
+		mask-repeat: no-repeat;
+		mask-size: 2rem 2rem;
+		mask-position: right center;
+		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E");
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-size: 2rem 2rem;
+		-webkit-mask-position: right center;
+	}
+
+	.star-rating__star--half {
+		mask-position: left center;
+		-webkit-mask-position: left center;
+	}
+
+	.star-rating__input:checked ~ .star-rating__star {
+		background-color: var(--color-accent);
+	}
+
+	/* While pointing at the widget, the hover preview wins over the stored
+	   selection, so moving to a lower star visibly lowers the rating. */
+	.star-rating__stars:hover .star-rating__input:checked ~ .star-rating__star {
+		background-color: var(--color-border);
+	}
+
+	.star-rating__star:hover,
+	.star-rating__star:hover ~ .star-rating__star {
+		background-color: var(--color-accent);
+	}
+
+	.star-rating__input:focus-visible + .star-rating__star {
+		outline: 2px solid var(--color-info);
+		outline-offset: 2px;
+	}
+}
