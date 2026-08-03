@@ -160,7 +160,7 @@ func TestGamesShow_ShowsOwnershipControlsForMatchingCookie(t *testing.T) {
 
 	body := f.show(t, f.id(), owner).Body.String()
 
-	if !strings.Contains(body, "review-controls-") {
+	if !strings.Contains(body, `id="review-controls-`) {
 		t.Error("expected the ownership slot on the visitor's own review")
 	}
 }
@@ -172,7 +172,7 @@ func TestGamesShow_HidesOwnershipControlsForOtherReviewers(t *testing.T) {
 
 	body := f.show(t, f.id(), uuid.NewString()).Body.String()
 
-	if strings.Contains(body, "review-controls-") {
+	if strings.Contains(body, `id="review-controls-`) {
 		t.Error("no ownership slot should render for reviews the visitor does not own")
 	}
 }
@@ -186,7 +186,7 @@ func TestGamesShow_ShowsOwnershipOnlyOnOwnReviewAmongMany(t *testing.T) {
 
 	body := f.show(t, f.id(), owner).Body.String()
 
-	if got := strings.Count(body, "review-controls-"); got != 1 {
+	if got := strings.Count(body, `id="review-controls-`); got != 1 {
 		t.Errorf("ownership slots = %d, want exactly 1", got)
 	}
 }
@@ -242,7 +242,7 @@ func TestGamesShow_ReflectsReviewSubmittedThroughF04(t *testing.T) {
 	if !strings.Contains(body, "3,5") {
 		t.Error("rating 7 should be reflected as an average of 3,5 stars")
 	}
-	if !strings.Contains(body, "review-controls-") {
+	if !strings.Contains(body, `id="review-controls-`) {
 		t.Error("the submitting visitor should own the review they just published")
 	}
 }
