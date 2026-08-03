@@ -1,0 +1,27 @@
+package components
+
+import "fmt"
+
+// ReviewsSectionID is the swap target every review mutation replaces, so the
+// average and the count are never left stale after an edit or a delete.
+const ReviewsSectionID = "reviews-section"
+
+templ ReviewsSection(averageStars float64, totalReviews int, reviews []ReviewView) {
+	<section id={ ReviewsSectionID } class="mt-10">
+		if totalReviews > 0 {
+			<p class="text-lg">
+				<span class="font-semibold text-accent">{ FormatStars(averageStars) }</span>
+				<span class="text-muted">{ fmt.Sprintf("/ 5 · %s", pluralizeReviews(totalReviews)) }</span>
+			</p>
+			<ul class="mt-4 flex flex-col gap-3">
+				for _, review := range reviews {
+					<li>
+						@ReviewCard(review)
+					</li>
+				}
+			</ul>
+		} else {
+			<p class="text-muted">Este jogo ainda não tem reviews. Seja o primeiro a avaliar!</p>
+		}
+	</section>
+}
