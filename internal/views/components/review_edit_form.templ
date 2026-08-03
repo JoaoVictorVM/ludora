@@ -1,0 +1,42 @@
+package components
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/JoaoVictorVM/ludora/internal/models"
+)
+
+// ReviewEditForm replaces the review card in place. Saving swaps the whole
+// reviews section, so the average and count refresh in the same round trip.
+templ ReviewEditForm(review models.Review, errorMessage string) {
+	<form
+		id={ reviewCardID(review.ID) }
+		class="rounded border border-accent bg-surface p-4"
+		hx-put={ fmt.Sprintf("/reviews/%d", review.ID) }
+		hx-target={ "#" + ReviewsSectionID }
+		hx-swap="outerHTML"
+	>
+		@StarRatingInput(review.Rating)
+		<div class="mt-4">
+			<label for={ fmt.Sprintf("comentario-%d", review.ID) } class="block text-sm text-muted">Comentário (opcional)</label>
+			<textarea
+				id={ fmt.Sprintf("comentario-%d", review.ID) }
+				name="comment"
+				rows="4"
+				maxlength={ strconv.Itoa(models.MaxCommentLength) }
+				class="mt-2 w-full rounded border border-border bg-bg px-3 py-2 outline-none focus:border-accent"
+			>{ review.Comment }</textarea>
+		</div>
+		if errorMessage != "" {
+			<p role="alert" class="mt-3 text-sm text-accent">{ errorMessage }</p>
+		}
+		<div class="mt-4 flex items-center gap-3">
+			<button type="submit" class="rounded bg-accent px-4 py-2 font-medium text-bg hover:opacity-90">Salvar</button>
+			<a
+				href={ templ.SafeURL("/jogos/" + strconv.FormatInt(review.GameID, 10)) }
+				class="text-sm text-muted underline underline-offset-2"
+			>Cancelar</a>
+		</div>
+	</form>
+}

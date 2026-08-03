@@ -17,6 +17,11 @@ const (
 	DuplicateReviewMessage = "Você já avaliou este jogo. Edite sua review existente."
 	MissingRatingMessage   = "Selecione uma nota antes de publicar."
 	CommentTooLongMessage  = "Sua review é muito longa (máximo de 800 caracteres)."
+
+	// NotAuthorizedMessage is deliberately vague: it is shown both when the
+	// review belongs to someone else and when it does not exist at all.
+	NotAuthorizedMessage  = "Você não tem permissão para modificar esta review."
+	AlreadyRemovedMessage = "Esta review já foi removida."
 )
 
 // Review is a single anonymous review of a game.
