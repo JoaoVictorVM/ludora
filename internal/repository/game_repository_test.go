@@ -3,10 +3,13 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/JoaoVictorVM/ludora/internal/database"
@@ -213,5 +216,199 @@ func TestGetByID_ReturnsCachedRecord(t *testing.T) {
 	}
 	if found.ExternalID != "3498" {
 		t.Errorf("ExternalID = %q, want 3498", found.ExternalID)
+	}
+}
+
+// seedReviewedGames creates n games, each with one review, spacing the review
+// timestamps so the feed ordering is deterministic: higher index = more recent.
+func seedReviewedGames(t *testing.T, pool *pgxpool.Pool, n int) []int64 {
+	t.Helper()
+
+	ctx := context.Background()
+	gameRepo := NewGameRepository(pool)
+	reviewRepo := NewReviewRepository(pool)
+
+	ids := make([]int64, 0, n)
+	for i := 0; i < n; i++ {
+		game, err := gameRepo.Create(ctx, &models.Game{
+			ExternalID:     strconv.Itoa(1000 + i),
+			ExternalSource: models.SourceRAWG,
+			Name:           fmt.Sprintf("Jogo %02d", i),
+		})
+		if err != nil {
+			t.Fatalf("seeding game %d: %v", i, err)
+		}
+
+		review, err := reviewRepo.Create(ctx, &models.Review{
+			GameID:       game.ID,
+			ReviewerUUID: uuid.NewString(),
+			Rating:       int16(i%10 + 1),
+		})
+		if err != nil {
+			t.Fatalf("seeding review %d: %v", i, err)
+		}
+
+		_, err = pool.Exec(ctx,
+			`UPDATE reviews SET created_at = now() - make_interval(mins => $1::int) WHERE id = $2`,
+			n-i, review.ID)
+		if err != nil {
+			t.Fatalf("aging review %d: %v", i, err)
+		}
+
+		ids = append(ids, game.ID)
+	}
+
+	return ids
+}
+
+func TestListRecentlyReviewed_OrdersByLastReviewDesc(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	ids := seedReviewedGames(t, pool, 3)
+
+	games, _, err := NewGameRepository(pool).ListRecentlyReviewed(ctx, 10, 0)
+	if err != nil {
+		t.Fatalf("ListRecentlyReviewed: %v", err)
+	}
+	if len(games) != 3 {
+		t.Fatalf("got %d games, want 3", len(games))
+	}
+
+	// Seeded newest last, so the feed must return them reversed.
+	for i, want := range []int64{ids[2], ids[1], ids[0]} {
+		if games[i].ID != want {
+			t.Errorf("position %d = game %d, want %d", i, games[i].ID, want)
+		}
+	}
+	for i := 1; i < len(games); i++ {
+		if games[i].LastReviewedAt.After(games[i-1].LastReviewedAt) {
+			t.Fatal("games are not ordered by most recent review")
+		}
+	}
+}
+
+func TestListRecentlyReviewed_ExcludesGamesWithoutReviews(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	seedReviewedGames(t, pool, 2)
+
+	if _, err := NewGameRepository(pool).Create(ctx, &models.Game{
+		ExternalID:     "sem-review",
+		ExternalSource: models.SourceRAWG,
+		Name:           "Jogo Sem Review",
+	}); err != nil {
+		t.Fatalf("seeding unreviewed game: %v", err)
+	}
+
+	games, _, err := NewGameRepository(pool).ListRecentlyReviewed(ctx, 10, 0)
+	if err != nil {
+		t.Fatalf("ListRecentlyReviewed: %v", err)
+	}
+	if len(games) != 2 {
+		t.Fatalf("got %d games, want only the reviewed ones", len(games))
+	}
+}
+
+func TestListRecentlyReviewed_RespectsLimitAndOffset(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	seedReviewedGames(t, pool, 7)
+	repo := NewGameRepository(pool)
+
+	first, _, err := repo.ListRecentlyReviewed(ctx, 3, 0)
+	if err != nil {
+		t.Fatalf("first page: %v", err)
+	}
+	if len(first) != 3 {
+		t.Fatalf("first page has %d games, want 3", len(first))
+	}
+
+	second, _, err := repo.ListRecentlyReviewed(ctx, 3, 3)
+	if err != nil {
+		t.Fatalf("second page: %v", err)
+	}
+	if len(second) != 3 {
+		t.Fatalf("second page has %d games, want 3", len(second))
+	}
+
+	seen := map[int64]bool{}
+	for _, game := range append(append([]ReviewedGame{}, first...), second...) {
+		if seen[game.ID] {
+			t.Errorf("game %d appeared on both pages", game.ID)
+		}
+		seen[game.ID] = true
+	}
+
+	last, _, err := repo.ListRecentlyReviewed(ctx, 3, 6)
+	if err != nil {
+		t.Fatalf("last page: %v", err)
+	}
+	if len(last) != 1 {
+		t.Errorf("last page has %d games, want the remaining 1", len(last))
+	}
+}
+
+func TestListRecentlyReviewed_IndicatesMoreResultsAvailable(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	seedReviewedGames(t, pool, 5)
+	repo := NewGameRepository(pool)
+
+	games, hasMore, err := repo.ListRecentlyReviewed(ctx, 3, 0)
+	if err != nil {
+		t.Fatalf("ListRecentlyReviewed: %v", err)
+	}
+	if len(games) != 3 {
+		t.Errorf("got %d games, want exactly the limit (the probe row must not leak)", len(games))
+	}
+	if !hasMore {
+		t.Error("hasMore = false, want true when more games remain")
+	}
+
+	_, hasMore, err = repo.ListRecentlyReviewed(ctx, 3, 3)
+	if err != nil {
+		t.Fatalf("ListRecentlyReviewed: %v", err)
+	}
+	if hasMore {
+		t.Error("hasMore = true on the final page, want false")
+	}
+
+	_, hasMore, err = repo.ListRecentlyReviewed(ctx, 5, 0)
+	if err != nil {
+		t.Fatalf("ListRecentlyReviewed: %v", err)
+	}
+	if hasMore {
+		t.Error("hasMore = true when the page exactly exhausts the catalog, want false")
+	}
+}
+
+func TestListRecentlyReviewed_AggregatesRatingAndCount(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	reviewRepo := NewReviewRepository(pool)
+
+	for _, rating := range []int16{9, 8, 6} {
+		if _, err := reviewRepo.Create(ctx, &models.Review{
+			GameID:       gameID,
+			ReviewerUUID: uuid.NewString(),
+			Rating:       rating,
+		}); err != nil {
+			t.Fatalf("seeding review: %v", err)
+		}
+	}
+
+	games, _, err := NewGameRepository(pool).ListRecentlyReviewed(ctx, 10, 0)
+	if err != nil {
+		t.Fatalf("ListRecentlyReviewed: %v", err)
+	}
+	if len(games) != 1 {
+		t.Fatalf("got %d games, want 1", len(games))
+	}
+	if games[0].AverageStars != 3.8 {
+		t.Errorf("AverageStars = %v, want 3.8", games[0].AverageStars)
+	}
+	if games[0].TotalReviews != 3 {
+		t.Errorf("TotalReviews = %d, want 3", games[0].TotalReviews)
 	}
 }
