@@ -209,3 +209,120 @@ func TestReviews_CascadeOnGameDelete(t *testing.T) {
 		t.Errorf("reviews rows = %d after deleting the game, want 0", count)
 	}
 }
+
+func TestListByGameID_OrdersByCreatedAtDesc(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	repo := NewReviewRepository(pool)
+
+	for _, rating := range []int16{2, 6, 10} {
+		if _, err := repo.Create(ctx, &models.Review{
+			GameID:       gameID,
+			ReviewerUUID: uuid.NewString(),
+			Rating:       rating,
+		}); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+	}
+
+	// now() is identical inside a single statement but not across statements;
+	// spreading the timestamps makes the ordering unambiguous.
+	if _, err := pool.Exec(ctx, `UPDATE reviews SET created_at = now() - (rating || ' hours')::interval`); err != nil {
+		t.Fatalf("spreading timestamps: %v", err)
+	}
+
+	reviews, err := repo.ListByGameID(ctx, gameID)
+	if err != nil {
+		t.Fatalf("ListByGameID: %v", err)
+	}
+	if len(reviews) != 3 {
+		t.Fatalf("got %d reviews, want 3", len(reviews))
+	}
+
+	for i := 1; i < len(reviews); i++ {
+		if reviews[i].CreatedAt.After(reviews[i-1].CreatedAt) {
+			t.Fatalf("reviews are not ordered most recent first: %v", reviews)
+		}
+	}
+	if reviews[0].Rating != 2 {
+		t.Errorf("first review rating = %d, want the most recent one (2)", reviews[0].Rating)
+	}
+}
+
+func TestListByGameID_IgnoresOtherGames(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	repo := NewReviewRepository(pool)
+
+	other, err := NewGameRepository(pool).Create(ctx, &models.Game{
+		ExternalID:     "4200",
+		ExternalSource: models.SourceRAWG,
+		Name:           "Portal 2",
+	})
+	if err != nil {
+		t.Fatalf("seeding second game: %v", err)
+	}
+
+	if _, err := repo.Create(ctx, &models.Review{GameID: gameID, ReviewerUUID: uuid.NewString(), Rating: 8}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if _, err := repo.Create(ctx, &models.Review{GameID: other.ID, ReviewerUUID: uuid.NewString(), Rating: 4}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	reviews, err := repo.ListByGameID(ctx, gameID)
+	if err != nil {
+		t.Fatalf("ListByGameID: %v", err)
+	}
+	if len(reviews) != 1 {
+		t.Fatalf("got %d reviews, want only the ones for this game", len(reviews))
+	}
+}
+
+func TestAverageRatingByGameID_ComputesHalfStarRounding(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+	repo := NewReviewRepository(pool)
+
+	// AVG(9,8,6) = 7.6667 → /2 = 3.8333 → rounded to 3.8
+	for _, rating := range []int16{9, 8, 6} {
+		if _, err := repo.Create(ctx, &models.Review{
+			GameID:       gameID,
+			ReviewerUUID: uuid.NewString(),
+			Rating:       rating,
+		}); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+	}
+
+	summary, err := repo.AverageRatingByGameID(ctx, gameID)
+	if err != nil {
+		t.Fatalf("AverageRatingByGameID: %v", err)
+	}
+	if summary.AverageStars != 3.8 {
+		t.Errorf("AverageStars = %v, want 3.8", summary.AverageStars)
+	}
+	if summary.TotalReviews != 3 {
+		t.Errorf("TotalReviews = %d, want 3", summary.TotalReviews)
+	}
+}
+
+func TestAverageRatingByGameID_ZeroReviewsReturnsNull(t *testing.T) {
+	ctx := context.Background()
+	pool := migratedPool(t)
+	gameID := seedGame(t, pool)
+
+	summary, err := NewReviewRepository(pool).AverageRatingByGameID(ctx, gameID)
+	if err != nil {
+		t.Fatalf("AverageRatingByGameID: %v", err)
+	}
+	if summary.AverageStars != 0 {
+		t.Errorf("AverageStars = %v, want 0", summary.AverageStars)
+	}
+	if summary.TotalReviews != 0 {
+		t.Errorf("TotalReviews = %d, want 0", summary.TotalReviews)
+	}
+}
