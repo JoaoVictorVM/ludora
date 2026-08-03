@@ -19,6 +19,7 @@ type Deps struct {
 	GamesShow     *handlers.GamesShow
 	Home          *handlers.Home
 	GamesRecent   *handlers.GamesRecent
+	ReviewsEdit   *handlers.ReviewsEdit
 }
 
 // New builds the application handler: a standard ServeMux with the feature
@@ -48,6 +49,11 @@ func New(deps Deps) http.Handler {
 
 	if deps.ReviewsSubmit != nil {
 		mux.HandleFunc("POST /reviews", deps.ReviewsSubmit.Submit)
+	}
+
+	if deps.ReviewsEdit != nil {
+		mux.HandleFunc("GET /reviews/{id}/editar", deps.ReviewsEdit.Form)
+		mux.HandleFunc("PUT /reviews/{id}", deps.ReviewsEdit.Update)
 	}
 
 	if deps.GamesShow != nil {
