@@ -258,7 +258,7 @@ func TestListByGameID_IgnoresOtherGames(t *testing.T) {
 
 	other, err := NewGameRepository(pool).Create(ctx, &models.Game{
 		ExternalID:     "4200",
-		ExternalSource: models.SourceRAWG,
+		ExternalSource: models.SourceIGDB,
 		Name:           "Portal 2",
 	})
 	if err != nil {
