@@ -11,13 +11,12 @@ import (
 
 	"github.com/JoaoVictorVM/ludora/internal/models"
 	"github.com/JoaoVictorVM/ludora/internal/repository"
-	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
 	"github.com/JoaoVictorVM/ludora/internal/views/components"
 )
 
 // GameDetailsFetcher is the slice of the RAWG client used on a cache miss.
 type GameDetailsFetcher interface {
-	GetGameDetails(ctx context.Context, externalID string) (*rawg.GameDetails, error)
+	GetGameDetails(ctx context.Context, externalID string) (*models.GameDetails, error)
 }
 
 // GameCache is the slice of the game repository this handler depends on.

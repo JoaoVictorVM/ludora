@@ -11,8 +11,8 @@ import (
 
 	"github.com/JoaoVictorVM/ludora/internal/handlers"
 	"github.com/JoaoVictorVM/ludora/internal/middleware"
+	"github.com/JoaoVictorVM/ludora/internal/models"
 	"github.com/JoaoVictorVM/ludora/internal/repository"
-	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
 )
 
 func staticFixture(t *testing.T) string {
@@ -60,15 +60,15 @@ func TestRouter_StaticAssetNotFound(t *testing.T) {
 }
 
 type stubSearcher struct {
-	results []rawg.SearchResult
+	results []models.GameSearchResult
 }
 
-func (s *stubSearcher) SearchGames(context.Context, string) ([]rawg.SearchResult, error) {
+func (s *stubSearcher) SearchGames(context.Context, string) ([]models.GameSearchResult, error) {
 	return s.results, nil
 }
 
 func TestRouter_RegistersGameSearchRoute(t *testing.T) {
-	searcher := &stubSearcher{results: []rawg.SearchResult{
+	searcher := &stubSearcher{results: []models.GameSearchResult{
 		{ExternalID: 3498, Name: "Grand Theft Auto V", ReleaseYear: 2013},
 	}}
 	handler := New(Deps{

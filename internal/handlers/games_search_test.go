@@ -11,17 +11,18 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JoaoVictorVM/ludora/internal/models"
 	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
 )
 
 type stubSearcher struct {
-	results  []rawg.SearchResult
+	results  []models.GameSearchResult
 	err      error
 	calls    int
 	gotQuery string
 }
 
-func (s *stubSearcher) SearchGames(_ context.Context, query string) ([]rawg.SearchResult, error) {
+func (s *stubSearcher) SearchGames(_ context.Context, query string) ([]models.GameSearchResult, error) {
 	s.calls++
 	s.gotQuery = query
 	return s.results, s.err
@@ -47,7 +48,7 @@ func doSearch(t *testing.T, handler *GamesSearch, query string) *httptest.Respon
 }
 
 func TestSearchHandler_ReturnsResultCards(t *testing.T) {
-	searcher := &stubSearcher{results: []rawg.SearchResult{
+	searcher := &stubSearcher{results: []models.GameSearchResult{
 		{ExternalID: 3498, Name: "Grand Theft Auto V", CoverURL: "https://media.rawg.io/gta5.jpg", ReleaseYear: 2013},
 		{ExternalID: 4200, Name: "Portal 2", CoverURL: "https://media.rawg.io/portal2.jpg", ReleaseYear: 2011},
 	}}

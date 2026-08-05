@@ -10,6 +10,7 @@ import (
 
 	"github.com/a-h/templ"
 
+	"github.com/JoaoVictorVM/ludora/internal/models"
 	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
 	"github.com/JoaoVictorVM/ludora/internal/views/components"
 )
@@ -25,7 +26,7 @@ const (
 
 // GameSearcher is the slice of the RAWG client this handler depends on.
 type GameSearcher interface {
-	SearchGames(ctx context.Context, query string) ([]rawg.SearchResult, error)
+	SearchGames(ctx context.Context, query string) ([]models.GameSearchResult, error)
 }
 
 type GamesSearch struct {

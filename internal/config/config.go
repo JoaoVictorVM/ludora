@@ -21,7 +21,11 @@ type Config struct {
 	DatabaseURL string
 	Port        string
 	Env         string
-	RawgAPIKey  string
+
+	// IGDB credentials are a pair: the client id identifies the application on
+	// every call, the secret is only used to obtain the access token.
+	IgdbClientID     string
+	IgdbClientSecret string
 }
 
 func (c *Config) IsDevelopment() bool {
@@ -43,10 +47,11 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		Port:        os.Getenv("PORT"),
-		Env:         env,
-		RawgAPIKey:  os.Getenv("RAWG_API_KEY"),
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
+		Port:             os.Getenv("PORT"),
+		Env:              env,
+		IgdbClientID:     os.Getenv("IGDB_CLIENT_ID"),
+		IgdbClientSecret: os.Getenv("IGDB_CLIENT_SECRET"),
 	}
 
 	if cfg.Port == "" {

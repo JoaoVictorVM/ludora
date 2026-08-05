@@ -54,10 +54,10 @@ func run() error {
 		return err
 	}
 
-	if cfg.RawgAPIKey == "" {
-		logger.Warn("RAWG_API_KEY is not set; game search will fail until it is configured")
+	if cfg.IgdbClientID == "" || cfg.IgdbClientSecret == "" {
+		logger.Warn("IGDB credentials are not set; game search will fail until they are configured")
 	}
-	rawgClient := rawg.NewClient(cfg.RawgAPIKey)
+	rawgClient := rawg.NewClient(cfg.IgdbClientID)
 	gameRepo := repository.NewGameRepository(pool)
 	reviewRepo := repository.NewReviewRepository(pool)
 

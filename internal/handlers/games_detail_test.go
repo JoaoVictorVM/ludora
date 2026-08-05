@@ -20,22 +20,22 @@ import (
 )
 
 type stubDetailsFetcher struct {
-	details *rawg.GameDetails
+	details *models.GameDetails
 	err     error
 	calls   int
 	gotID   string
 }
 
-func (s *stubDetailsFetcher) GetGameDetails(_ context.Context, externalID string) (*rawg.GameDetails, error) {
+func (s *stubDetailsFetcher) GetGameDetails(_ context.Context, externalID string) (*models.GameDetails, error) {
 	s.calls++
 	s.gotID = externalID
 	return s.details, s.err
 }
 
-func gtaDetails() *rawg.GameDetails {
+func gtaDetails() *models.GameDetails {
 	released := time.Date(2013, time.September, 17, 0, 0, 0, 0, time.UTC)
 
-	return &rawg.GameDetails{
+	return &models.GameDetails{
 		ExternalID:  3498,
 		Name:        "Grand Theft Auto V",
 		CoverURL:    "https://media.rawg.io/gta5.jpg",
@@ -179,7 +179,7 @@ func TestGamesDetailHandler_ResolvesSearchSelectionIntoLocalRecord(t *testing.T)
 	pool := migratedPool(t)
 	repo := repository.NewGameRepository(pool)
 
-	card := rawg.SearchResult{ExternalID: 3498, Name: "Grand Theft Auto V"}
+	card := models.GameSearchResult{ExternalID: 3498, Name: "Grand Theft Auto V"}
 	fetcher := &stubDetailsFetcher{details: gtaDetails()}
 
 	requestForm(t, NewGamesDetail(repo, fetcher, nil), strconv.Itoa(card.ExternalID))

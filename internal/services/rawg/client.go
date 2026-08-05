@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/JoaoVictorVM/ludora/internal/models"
 )
 
 const (
@@ -41,15 +43,6 @@ func (e *APIError) Unwrap() error {
 		return ErrUnavailable
 	}
 	return nil
-}
-
-// SearchResult is one game returned by RAWG's search endpoint. It intentionally
-// carries only what a result card renders — full details are fetched separately.
-type SearchResult struct {
-	ExternalID  int
-	Name        string
-	CoverURL    string
-	ReleaseYear int
 }
 
 type Client struct {
@@ -138,7 +131,7 @@ func (c *Client) get(ctx context.Context, path string, params url.Values, operat
 }
 
 // SearchGames returns the top matches for query.
-func (c *Client) SearchGames(ctx context.Context, query string) ([]SearchResult, error) {
+func (c *Client) SearchGames(ctx context.Context, query string) ([]models.GameSearchResult, error) {
 	params := url.Values{}
 	params.Set("search", query)
 	params.Set("page_size", strconv.Itoa(searchPageSize))
@@ -148,9 +141,9 @@ func (c *Client) SearchGames(ctx context.Context, query string) ([]SearchResult,
 		return nil, err
 	}
 
-	results := make([]SearchResult, 0, len(payload.Results))
+	results := make([]models.GameSearchResult, 0, len(payload.Results))
 	for _, item := range payload.Results {
-		results = append(results, SearchResult{
+		results = append(results, models.GameSearchResult{
 			ExternalID:  item.ID,
 			Name:        item.Name,
 			CoverURL:    item.BackgroundImage,
@@ -159,16 +152,6 @@ func (c *Client) SearchGames(ctx context.Context, query string) ([]SearchResult,
 	}
 
 	return results, nil
-}
-
-// GameDetails is the enriched record fetched the first time a game is selected.
-type GameDetails struct {
-	ExternalID  int
-	Name        string
-	CoverURL    string
-	ReleasedAt  *time.Time
-	Developer   string
-	Description string
 }
 
 type detailsResponse struct {
@@ -185,7 +168,7 @@ type detailsResponse struct {
 // GetGameDetails fetches the full record for a game. The HTML `description`
 // field is deliberately not mapped: Templ escapes output, so its tags would show
 // up as literal text — `description_raw` is the plain-text equivalent.
-func (c *Client) GetGameDetails(ctx context.Context, externalID string) (*GameDetails, error) {
+func (c *Client) GetGameDetails(ctx context.Context, externalID string) (*models.GameDetails, error) {
 	var payload detailsResponse
 	if err := c.get(ctx, "/games/"+url.PathEscape(externalID), url.Values{}, "fetching game details", &payload); err != nil {
 		return nil, err
@@ -198,7 +181,7 @@ func (c *Client) GetGameDetails(ctx context.Context, externalID string) (*GameDe
 		}
 	}
 
-	return &GameDetails{
+	return &models.GameDetails{
 		ExternalID:  payload.ID,
 		Name:        payload.Name,
 		CoverURL:    payload.BackgroundImage,

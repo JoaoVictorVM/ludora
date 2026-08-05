@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
+	"github.com/JoaoVictorVM/ludora/internal/models"
 )
 
-templ SearchResultCard(result rawg.SearchResult) {
+templ SearchResultCard(result models.GameSearchResult) {
 	<button
 		type="button"
 		class="flex w-full items-center gap-3 rounded border border-border bg-surface p-2 text-left hover:border-accent"

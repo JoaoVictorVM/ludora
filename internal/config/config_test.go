@@ -41,7 +41,7 @@ func writeDotenv(t *testing.T, dir, contents string) {
 func clearEnv(t *testing.T) {
 	t.Helper()
 
-	for _, key := range []string{"ENV", "DATABASE_URL", "PORT", "RAWG_API_KEY"} {
+	for _, key := range []string{"ENV", "DATABASE_URL", "PORT", "IGDB_CLIENT_ID", "IGDB_CLIENT_SECRET"} {
 		t.Setenv(key, "")
 		if err := os.Unsetenv(key); err != nil {
 			t.Fatalf("unsetting %s: %v", key, err)
@@ -115,5 +115,40 @@ func TestLoadConfig_DefaultsPortAndEnv(t *testing.T) {
 	}
 	if cfg.Env != EnvDevelopment {
 		t.Errorf("Env = %q, want %q", cfg.Env, EnvDevelopment)
+	}
+}
+
+func TestLoadConfig_ReadsIgdbCredentials(t *testing.T) {
+	chdirTemp(t)
+	clearEnv(t)
+	t.Setenv("DATABASE_URL", "postgres://os-env/ludora")
+	t.Setenv("IGDB_CLIENT_ID", "client-id")
+	t.Setenv("IGDB_CLIENT_SECRET", "client-secret")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.IgdbClientID != "client-id" {
+		t.Errorf("IgdbClientID = %q, want client-id", cfg.IgdbClientID)
+	}
+	if cfg.IgdbClientSecret != "client-secret" {
+		t.Errorf("IgdbClientSecret = %q, want client-secret", cfg.IgdbClientSecret)
+	}
+}
+
+// Missing credentials must not stop the server from booting: the search feature
+// degrades to its unavailable message, but every other page keeps working.
+func TestLoadConfig_MissingIgdbCredentialsIsNotFatal(t *testing.T) {
+	chdirTemp(t)
+	clearEnv(t)
+	t.Setenv("DATABASE_URL", "postgres://os-env/ludora")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.IgdbClientID != "" || cfg.IgdbClientSecret != "" {
+		t.Error("expected empty credentials when the variables are unset")
 	}
 }

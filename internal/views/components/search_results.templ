@@ -3,10 +3,10 @@ package components
 import (
 	"fmt"
 
-	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
+	"github.com/JoaoVictorVM/ludora/internal/models"
 )
 
-templ SearchResults(query string, results []rawg.SearchResult) {
+templ SearchResults(query string, results []models.GameSearchResult) {
 	if len(results) == 0 {
 		<p class="text-sm text-muted">{ fmt.Sprintf("Nenhum jogo encontrado para '%s'. Tente outra busca.", query) }</p>
 	} else {
