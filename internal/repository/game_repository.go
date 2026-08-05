@@ -63,7 +63,7 @@ func (r *GameRepository) Create(ctx context.Context, game *models.Game) (*models
 
 	source := game.ExternalSource
 	if source == "" {
-		source = models.SourceRAWG
+		source = models.SourceIGDB
 	}
 
 	created, err := scanGame(r.pool.QueryRow(ctx, query,

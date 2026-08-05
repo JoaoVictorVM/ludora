@@ -2,10 +2,6 @@ package models
 
 import "time"
 
-// SourceRAWG tags records cached from the RAWG API, leaving room for other
-// providers without a schema change.
-const SourceRAWG = "rawg"
-
 // Game is a locally cached game record. Nullable text columns are exposed as
 // empty strings so views can render them without pointer checks; ReleasedAt
 // stays a pointer because "no known release date" is meaningful.

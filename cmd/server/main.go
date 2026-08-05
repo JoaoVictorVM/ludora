@@ -15,7 +15,7 @@ import (
 	"github.com/JoaoVictorVM/ludora/internal/logging"
 	"github.com/JoaoVictorVM/ludora/internal/repository"
 	"github.com/JoaoVictorVM/ludora/internal/router"
-	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
+	"github.com/JoaoVictorVM/ludora/internal/services/igdb"
 )
 
 const (
@@ -57,7 +57,7 @@ func run() error {
 	if cfg.IgdbClientID == "" || cfg.IgdbClientSecret == "" {
 		logger.Warn("IGDB credentials are not set; game search will fail until they are configured")
 	}
-	rawgClient := rawg.NewClient(cfg.IgdbClientID)
+	gameProvider := igdb.NewClient(cfg.IgdbClientID, cfg.IgdbClientSecret)
 	gameRepo := repository.NewGameRepository(pool)
 	reviewRepo := repository.NewReviewRepository(pool)
 
@@ -66,8 +66,8 @@ func run() error {
 		Handler: router.New(router.Deps{
 			Logger:        logger,
 			StaticDir:     staticDir,
-			GamesSearch:   handlers.NewGamesSearch(rawgClient, logger),
-			GamesDetail:   handlers.NewGamesDetail(gameRepo, rawgClient, logger),
+			GamesSearch:   handlers.NewGamesSearch(gameProvider, logger),
+			GamesDetail:   handlers.NewGamesDetail(gameRepo, gameProvider, logger),
 			ReviewsSubmit: handlers.NewReviewsSubmit(reviewRepo, gameRepo, logger),
 			GamesShow:     handlers.NewGamesShow(gameRepo, reviewRepo, logger),
 			Home:          handlers.NewHome(gameRepo, logger),

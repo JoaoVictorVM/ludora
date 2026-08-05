@@ -29,7 +29,7 @@ func seedReviewedGames(t *testing.T, pool *pgxpool.Pool, n int) {
 	for i := 0; i < n; i++ {
 		game, err := gameRepo.Create(ctx, &models.Game{
 			ExternalID:     strconv.Itoa(1000 + i),
-			ExternalSource: models.SourceRAWG,
+			ExternalSource: models.SourceIGDB,
 			Name:           fmt.Sprintf("Jogo %02d", i),
 		})
 		if err != nil {
@@ -128,7 +128,7 @@ func TestHome_ReviewFromF04MovesGameToTop(t *testing.T) {
 	seedReviewedGames(t, pool, 3)
 
 	gameRepo := repository.NewGameRepository(pool)
-	oldest, err := gameRepo.FindByExternalID(context.Background(), models.SourceRAWG, "1000")
+	oldest, err := gameRepo.FindByExternalID(context.Background(), models.SourceIGDB, "1000")
 	if err != nil {
 		t.Fatalf("finding the oldest game: %v", err)
 	}

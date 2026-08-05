@@ -11,7 +11,7 @@ import (
 	"github.com/a-h/templ"
 
 	"github.com/JoaoVictorVM/ludora/internal/models"
-	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
+	"github.com/JoaoVictorVM/ludora/internal/services/igdb"
 	"github.com/JoaoVictorVM/ludora/internal/views/components"
 )
 
@@ -24,7 +24,7 @@ const (
 	messageGenericFail = "Algo deu errado com essa busca."
 )
 
-// GameSearcher is the slice of the RAWG client this handler depends on.
+// GameSearcher is the slice of the IGDB client this handler depends on.
 type GameSearcher interface {
 	SearchGames(ctx context.Context, query string) ([]models.GameSearchResult, error)
 }
@@ -60,17 +60,17 @@ func (h *GamesSearch) Search(w http.ResponseWriter, r *http.Request) {
 
 func (h *GamesSearch) renderFailure(w http.ResponseWriter, r *http.Request, query string, err error) {
 	message := messageGenericFail
-	if errors.Is(err, rawg.ErrUnavailable) {
+	if errors.Is(err, igdb.ErrUnavailable) {
 		message = messageUnavailable
 	}
 
 	// The status code is the useful signal for a rejected call, so it is logged
 	// instead of the error string, which would otherwise be redundant.
-	var apiErr *rawg.APIError
+	var apiErr *igdb.APIError
 	if errors.As(err, &apiErr) {
-		h.log("rawg search returned an unexpected status", "query", query, "status", apiErr.StatusCode)
+		h.log("igdb search returned an unexpected status", "query", query, "status", apiErr.StatusCode)
 	} else {
-		h.log("rawg search failed", "query", query, "error", err.Error())
+		h.log("igdb search failed", "query", query, "error", err.Error())
 	}
 
 	h.render(w, r, components.SearchError(message))

@@ -33,9 +33,9 @@ func sampleGame() *models.Game {
 
 	return &models.Game{
 		ExternalID:     "3498",
-		ExternalSource: models.SourceRAWG,
+		ExternalSource: models.SourceIGDB,
 		Name:           "Grand Theft Auto V",
-		CoverURL:       "https://media.rawg.io/gta5.jpg",
+		CoverURL:       "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg",
 		ReleasedAt:     &released,
 		Developer:      "Rockstar North, Rockstar Games",
 		Description:    "An open world action-adventure game.",
@@ -57,13 +57,13 @@ func TestCreate_InsertsNewGame(t *testing.T) {
 	if created.ExternalID != "3498" {
 		t.Errorf("ExternalID = %q, want 3498", created.ExternalID)
 	}
-	if created.ExternalSource != models.SourceRAWG {
-		t.Errorf("ExternalSource = %q, want rawg", created.ExternalSource)
+	if created.ExternalSource != models.SourceIGDB {
+		t.Errorf("ExternalSource = %q, want igdb", created.ExternalSource)
 	}
 	if created.Name != "Grand Theft Auto V" {
 		t.Errorf("Name = %q", created.Name)
 	}
-	if created.CoverURL != "https://media.rawg.io/gta5.jpg" {
+	if created.CoverURL != "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg" {
 		t.Errorf("CoverURL = %q", created.CoverURL)
 	}
 	if created.Developer != "Rockstar North, Rockstar Games" {
@@ -87,7 +87,7 @@ func TestCreate_OptionalFieldsBecomeNull(t *testing.T) {
 
 	created, err := repo.Create(ctx, &models.Game{
 		ExternalID:     "999",
-		ExternalSource: models.SourceRAWG,
+		ExternalSource: models.SourceIGDB,
 		Name:           "Jogo Sem Metadados",
 	})
 	if err != nil {
@@ -179,7 +179,7 @@ func TestFindByExternalID_ReturnsCachedRecord(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	found, err := repo.FindByExternalID(ctx, models.SourceRAWG, "3498")
+	found, err := repo.FindByExternalID(ctx, models.SourceIGDB, "3498")
 	if err != nil {
 		t.Fatalf("FindByExternalID: %v", err)
 	}
@@ -195,7 +195,7 @@ func TestFindByExternalID_NotFound(t *testing.T) {
 	ctx := context.Background()
 	repo := NewGameRepository(migratedPool(t))
 
-	_, err := repo.FindByExternalID(ctx, models.SourceRAWG, "inexistente")
+	_, err := repo.FindByExternalID(ctx, models.SourceIGDB, "inexistente")
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("error = %v, want ErrNotFound", err)
 	}
@@ -232,7 +232,7 @@ func seedReviewedGames(t *testing.T, pool *pgxpool.Pool, n int) []int64 {
 	for i := 0; i < n; i++ {
 		game, err := gameRepo.Create(ctx, &models.Game{
 			ExternalID:     strconv.Itoa(1000 + i),
-			ExternalSource: models.SourceRAWG,
+			ExternalSource: models.SourceIGDB,
 			Name:           fmt.Sprintf("Jogo %02d", i),
 		})
 		if err != nil {
@@ -294,7 +294,7 @@ func TestListRecentlyReviewed_ExcludesGamesWithoutReviews(t *testing.T) {
 
 	if _, err := NewGameRepository(pool).Create(ctx, &models.Game{
 		ExternalID:     "sem-review",
-		ExternalSource: models.SourceRAWG,
+		ExternalSource: models.SourceIGDB,
 		Name:           "Jogo Sem Review",
 	}); err != nil {
 		t.Fatalf("seeding unreviewed game: %v", err)

@@ -14,7 +14,7 @@ import (
 	"github.com/JoaoVictorVM/ludora/internal/views/components"
 )
 
-// GameDetailsFetcher is the slice of the RAWG client used on a cache miss.
+// GameDetailsFetcher is the slice of the IGDB client used on a cache miss.
 type GameDetailsFetcher interface {
 	GetGameDetails(ctx context.Context, externalID string) (*models.GameDetails, error)
 }
@@ -36,14 +36,14 @@ func NewGamesDetail(games GameCache, client GameDetailsFetcher, logger *slog.Log
 }
 
 // Form handles GET /jogos/{external_id}/formulario: it resolves the selected
-// game into a local record — fetching from RAWG only on a cache miss — and
+// game into a local record — fetching from IGDB only on a cache miss — and
 // renders the review form shell.
 func (h *GamesDetail) Form(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	externalID := r.PathValue("external_id")
 	if _, err := strconv.Atoi(externalID); err != nil {
-		h.log("invalid rawg external id", "external_id", externalID)
+		h.log("invalid igdb external id", "external_id", externalID)
 		h.render(w, r, components.GameLoadError())
 		return
 	}
@@ -58,7 +58,7 @@ func (h *GamesDetail) Form(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GamesDetail) resolve(ctx context.Context, externalID string) (*models.Game, error) {
-	game, err := h.games.FindByExternalID(ctx, models.SourceRAWG, externalID)
+	game, err := h.games.FindByExternalID(ctx, models.SourceIGDB, externalID)
 	if err == nil {
 		return game, nil
 	}
@@ -70,13 +70,13 @@ func (h *GamesDetail) resolve(ctx context.Context, externalID string) (*models.G
 	details, err := h.client.GetGameDetails(ctx, externalID)
 	if err != nil {
 		// Nothing is persisted on a failed fetch, so a retry starts clean.
-		h.log("fetching game details from rawg", "external_id", externalID, "error", err.Error())
+		h.log("fetching game details from igdb", "external_id", externalID, "error", err.Error())
 		return nil, err
 	}
 
 	game, err = h.games.Create(ctx, &models.Game{
 		ExternalID:     externalID,
-		ExternalSource: models.SourceRAWG,
+		ExternalSource: models.SourceIGDB,
 		Name:           details.Name,
 		CoverURL:       details.CoverURL,
 		ReleasedAt:     details.ReleasedAt,

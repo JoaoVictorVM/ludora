@@ -15,7 +15,7 @@ import (
 	"github.com/JoaoVictorVM/ludora/internal/database"
 	"github.com/JoaoVictorVM/ludora/internal/models"
 	"github.com/JoaoVictorVM/ludora/internal/repository"
-	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
+	"github.com/JoaoVictorVM/ludora/internal/services/igdb"
 	"github.com/JoaoVictorVM/ludora/internal/testutil"
 )
 
@@ -38,7 +38,7 @@ func gtaDetails() *models.GameDetails {
 	return &models.GameDetails{
 		ExternalID:  3498,
 		Name:        "Grand Theft Auto V",
-		CoverURL:    "https://media.rawg.io/gta5.jpg",
+		CoverURL:    "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg",
 		ReleasedAt:  &released,
 		Developer:   "Rockstar North",
 		Description: "An open world action-adventure game.",
@@ -93,7 +93,7 @@ func TestGamesDetailHandler_FirstSelection_FetchesAndCaches(t *testing.T) {
 	body := requestForm(t, NewGamesDetail(repo, fetcher, nil), "3498").Body.String()
 
 	if fetcher.calls != 1 {
-		t.Errorf("RAWG detail client called %d times, want 1", fetcher.calls)
+		t.Errorf("IGDB detail client called %d times, want 1", fetcher.calls)
 	}
 	if fetcher.gotID != "3498" {
 		t.Errorf("client received external id %q, want 3498", fetcher.gotID)
@@ -102,7 +102,7 @@ func TestGamesDetailHandler_FirstSelection_FetchesAndCaches(t *testing.T) {
 		t.Errorf("games rows = %d, want 1", got)
 	}
 
-	cached, err := repo.FindByExternalID(context.Background(), models.SourceRAWG, "3498")
+	cached, err := repo.FindByExternalID(context.Background(), models.SourceIGDB, "3498")
 	if err != nil {
 		t.Fatalf("FindByExternalID: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestGamesDetailHandler_FirstSelection_FetchesAndCaches(t *testing.T) {
 	}
 }
 
-func TestGamesDetailHandler_CachedSelection_SkipsRawgCall(t *testing.T) {
+func TestGamesDetailHandler_CachedSelection_SkipsProviderCall(t *testing.T) {
 	pool := migratedPool(t)
 	repo := repository.NewGameRepository(pool)
 	fetcher := &stubDetailsFetcher{details: gtaDetails()}
@@ -135,17 +135,17 @@ func TestGamesDetailHandler_CachedSelection_SkipsRawgCall(t *testing.T) {
 	requestForm(t, handler, "3498")
 
 	if fetcher.calls != 1 {
-		t.Errorf("RAWG detail client called %d times across two selections, want 1", fetcher.calls)
+		t.Errorf("IGDB detail client called %d times across two selections, want 1", fetcher.calls)
 	}
 	if got := countGames(t, pool, "3498"); got != 1 {
 		t.Errorf("games rows = %d, want 1", got)
 	}
 }
 
-func TestGamesDetailHandler_RawgFailure_ShowsErrorFragment(t *testing.T) {
+func TestGamesDetailHandler_ProviderFailure_ShowsErrorFragment(t *testing.T) {
 	pool := migratedPool(t)
 	repo := repository.NewGameRepository(pool)
-	fetcher := &stubDetailsFetcher{err: errors.Join(errors.New("boom"), rawg.ErrUnavailable)}
+	fetcher := &stubDetailsFetcher{err: errors.Join(errors.New("boom"), igdb.ErrUnavailable)}
 
 	body := requestForm(t, NewGamesDetail(repo, fetcher, nil), "3498").Body.String()
 
@@ -168,7 +168,7 @@ func TestGamesDetailHandler_InvalidExternalID(t *testing.T) {
 		t.Errorf("expected the load-error fragment, got %q", body)
 	}
 	if fetcher.calls != 0 {
-		t.Errorf("RAWG was called %d times for a malformed id, want 0", fetcher.calls)
+		t.Errorf("IGDB was called %d times for a malformed id, want 0", fetcher.calls)
 	}
 }
 
@@ -184,7 +184,7 @@ func TestGamesDetailHandler_ResolvesSearchSelectionIntoLocalRecord(t *testing.T)
 
 	requestForm(t, NewGamesDetail(repo, fetcher, nil), strconv.Itoa(card.ExternalID))
 
-	cached, err := repo.FindByExternalID(context.Background(), models.SourceRAWG, "3498")
+	cached, err := repo.FindByExternalID(context.Background(), models.SourceIGDB, "3498")
 	if err != nil {
 		t.Fatalf("FindByExternalID: %v", err)
 	}

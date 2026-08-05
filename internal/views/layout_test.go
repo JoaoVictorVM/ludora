@@ -21,10 +21,10 @@ func TestLayout_RendersFooterAttribution(t *testing.T) {
 	html := renderHome(t)
 
 	if !strings.Contains(html, "Dados dos jogos fornecidos por") {
-		t.Error("footer is missing the RAWG attribution text")
+		t.Error("footer is missing the IGDB attribution text")
 	}
-	if !strings.Contains(html, `href="https://rawg.io"`) {
-		t.Error("footer is missing the link to rawg.io")
+	if !strings.Contains(html, `href="https://www.igdb.com"`) {
+		t.Error("footer is missing the link to igdb.com")
 	}
 }
 

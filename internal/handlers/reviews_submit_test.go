@@ -32,7 +32,7 @@ func newSubmitFixture(t *testing.T) *submitFixture {
 
 	game, err := gameRepo.Create(context.Background(), &models.Game{
 		ExternalID:     "3498",
-		ExternalSource: models.SourceRAWG,
+		ExternalSource: models.SourceIGDB,
 		Name:           "Grand Theft Auto V",
 	})
 	if err != nil {

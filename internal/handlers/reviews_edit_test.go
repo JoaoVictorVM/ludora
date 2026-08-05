@@ -35,7 +35,7 @@ func newMutationFixture(t *testing.T) *mutationFixture {
 
 	game, err := gameRepo.Create(ctx, &models.Game{
 		ExternalID:     "3498",
-		ExternalSource: models.SourceRAWG,
+		ExternalSource: models.SourceIGDB,
 		Name:           "Grand Theft Auto V",
 	})
 	if err != nil {

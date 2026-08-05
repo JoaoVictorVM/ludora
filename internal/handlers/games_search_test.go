@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/JoaoVictorVM/ludora/internal/models"
-	"github.com/JoaoVictorVM/ludora/internal/services/rawg"
+	"github.com/JoaoVictorVM/ludora/internal/services/igdb"
 )
 
 type stubSearcher struct {
@@ -49,8 +49,8 @@ func doSearch(t *testing.T, handler *GamesSearch, query string) *httptest.Respon
 
 func TestSearchHandler_ReturnsResultCards(t *testing.T) {
 	searcher := &stubSearcher{results: []models.GameSearchResult{
-		{ExternalID: 3498, Name: "Grand Theft Auto V", CoverURL: "https://media.rawg.io/gta5.jpg", ReleaseYear: 2013},
-		{ExternalID: 4200, Name: "Portal 2", CoverURL: "https://media.rawg.io/portal2.jpg", ReleaseYear: 2011},
+		{ExternalID: 3498, Name: "Grand Theft Auto V", CoverURL: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg", ReleaseYear: 2013},
+		{ExternalID: 4200, Name: "Portal 2", CoverURL: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rc5.jpg", ReleaseYear: 2011},
 	}}
 
 	body := doSearch(t, NewGamesSearch(searcher, nil), "gta").Body.String()
@@ -61,7 +61,7 @@ func TestSearchHandler_ReturnsResultCards(t *testing.T) {
 
 	for _, fragment := range []string{
 		"Grand Theft Auto V",
-		"https://media.rawg.io/gta5.jpg",
+		"https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg",
 		"2013",
 		`hx-get="/jogos/3498/formulario"`,
 		`hx-target="#form-area"`,
@@ -93,7 +93,7 @@ func TestSearchHandler_ShortQuery(t *testing.T) {
 		t.Errorf("expected an empty fragment, got %q", body)
 	}
 	if searcher.calls != 0 {
-		t.Errorf("RAWG client was called %d times, want 0", searcher.calls)
+		t.Errorf("IGDB client was called %d times, want 0", searcher.calls)
 	}
 }
 
@@ -103,12 +103,12 @@ func TestSearchHandler_TrimsWhitespaceQuery(t *testing.T) {
 	doSearch(t, NewGamesSearch(searcher, nil), "%20%20")
 
 	if searcher.calls != 0 {
-		t.Errorf("a whitespace-only query should not reach RAWG, got %d calls", searcher.calls)
+		t.Errorf("a whitespace-only query should not reach the provider, got %d calls", searcher.calls)
 	}
 }
 
-func TestSearchHandler_RawgTimeout(t *testing.T) {
-	searcher := &stubSearcher{err: errors.Join(errors.New("context deadline exceeded"), rawg.ErrUnavailable)}
+func TestSearchHandler_ProviderTimeout(t *testing.T) {
+	searcher := &stubSearcher{err: errors.Join(errors.New("context deadline exceeded"), igdb.ErrUnavailable)}
 
 	body := doSearch(t, NewGamesSearch(searcher, nil), "gta").Body.String()
 
@@ -117,9 +117,9 @@ func TestSearchHandler_RawgTimeout(t *testing.T) {
 	}
 }
 
-func TestSearchHandler_RawgClientError(t *testing.T) {
+func TestSearchHandler_ProviderClientError(t *testing.T) {
 	var logs bytes.Buffer
-	searcher := &stubSearcher{err: &rawg.APIError{StatusCode: http.StatusBadRequest}}
+	searcher := &stubSearcher{err: &igdb.APIError{StatusCode: http.StatusBadRequest}}
 
 	body := doSearch(t, NewGamesSearch(searcher, captureLogger(&logs)), "gta").Body.String()
 
@@ -142,8 +142,8 @@ func TestSearchHandler_RawgClientError(t *testing.T) {
 	}
 }
 
-func TestSearchHandler_RawgServerErrorShowsUnavailable(t *testing.T) {
-	searcher := &stubSearcher{err: &rawg.APIError{StatusCode: http.StatusBadGateway}}
+func TestSearchHandler_ProviderServerErrorShowsUnavailable(t *testing.T) {
+	searcher := &stubSearcher{err: &igdb.APIError{StatusCode: http.StatusBadGateway}}
 
 	body := doSearch(t, NewGamesSearch(searcher, nil), "gta").Body.String()
 

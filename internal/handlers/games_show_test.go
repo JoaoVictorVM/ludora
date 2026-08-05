@@ -34,9 +34,9 @@ func newShowFixture(t *testing.T) *showFixture {
 	released := time.Date(2013, time.September, 17, 0, 0, 0, 0, time.UTC)
 	game, err := gameRepo.Create(context.Background(), &models.Game{
 		ExternalID:     "3498",
-		ExternalSource: models.SourceRAWG,
+		ExternalSource: models.SourceIGDB,
 		Name:           "Grand Theft Auto V",
-		CoverURL:       "https://media.rawg.io/gta5.jpg",
+		CoverURL:       "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg",
 		ReleasedAt:     &released,
 		Developer:      "Rockstar North",
 		Description:    "Um jogo de mundo aberto.",
@@ -98,7 +98,7 @@ func TestGamesShow_DisplaysGameInfo(t *testing.T) {
 	body := rec.Body.String()
 	for _, fragment := range []string{
 		"Grand Theft Auto V",
-		"https://media.rawg.io/gta5.jpg",
+		"https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg",
 		"2013",
 		"Rockstar North",
 		"Um jogo de mundo aberto.",
